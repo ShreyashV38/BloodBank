@@ -1,0 +1,137 @@
+<%# views/hospitals/index.ejs %>
+    <% if (success) { %>
+        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i>
+            <%= success %>
+        </div>
+        <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i>
+                    <%= error %>
+                </div>
+                <% } %>
+
+                    <!-- Add Hospital Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-plus"></i> Register New Hospital <small
+                                    style="font-weight:400;color:var(--text-muted);font-size:.8rem">(Goa,
+                                    India)</small></span>
+                        </div>
+                        <form method="POST" action="/hospitals/add">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Hospital Name *</label>
+                                    <input type="text" name="name" required placeholder="e.g., AIIMS Delhi" />
+                                </div>
+                                <div class="form-group">
+                                    <label>City *</label>
+                                    <select name="city" required>
+                                        <option value="">— Select City —</option>
+                                        <option value="Panaji">Panaji (North Goa)</option>
+                                        <option value="Margao">Margao (South Goa)</option>
+                                        <option value="Vasco">Vasco da Gama (South Goa)</option>
+                                        <option value="Mapusa">Mapusa (North Goa)</option>
+                                        <option value="Ponda">Ponda (South Goa)</option>
+                                        <option value="Calangute">Calangute (North Goa)</option>
+                                        <option value="Bicholim">Bicholim (North Goa)</option>
+                                        <option value="Canacona">Canacona (South Goa)</option>
+                                        <option value="Pernem">Pernem (North Goa)</option>
+                                        <option value="Quepem">Quepem (South Goa)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>State</label>
+                                    <input type="text" value="Goa" readonly
+                                        style="background:#f9fafb;color:var(--text-muted);cursor:not-allowed;" />
+                                    <input type="hidden" name="state" value="Goa" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone *</label>
+                                    <input type="tel" name="phone" required placeholder="+91 98100 00001"
+                                        maxlength="15" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Contact Person</label>
+                                    <input type="text" name="contact_person" placeholder="Dr. Priya Nair" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" name="email" placeholder="hospital@domain.com" />
+                                </div>
+                                <div class="form-group" style="grid-column:1/-1;">
+                                    <label>Address</label>
+                                    <textarea name="address" rows="2"
+                                        placeholder="Street, Area, City, State"></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top:16px;">
+                                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-hospital"></i>
+                                    Register Hospital</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Hospital List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-list"></i> Registered Hospitals (<%=
+                                    hospitals.length %>)</span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#ID</th>
+                                        <th>Hospital Name</th>
+                                        <th>City</th>
+                                        <th>Contact Person</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Registered</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (hospitals.length===0) { %>
+                                        <tr>
+                                            <td colspan="8"
+                                                style="text-align:center;color:var(--text-muted);padding:28px;">No
+                                                hospitals registered yet.</td>
+                                        </tr>
+                                        <% } %>
+                                            <% hospitals.forEach(h=> { %>
+                                                <tr>
+                                                    <td><span class="badge badge-gray">#<%= h.hospital_id %></span></td>
+                                                    <td style="font-weight:600">
+                                                        <%= h.name %>
+                                                    </td>
+                                                    <td>
+                                                        <%= h.city || '—' %>
+                                                    </td>
+                                                    <td>
+                                                        <%= h.contact_person || '—' %>
+                                                    </td>
+                                                    <td>
+                                                        <%= h.phone %>
+                                                    </td>
+                                                    <td><a href="mailto:<%= h.email %>">
+                                                            <%= h.email || '—' %>
+                                                        </a></td>
+                                                    <td style="color:var(--text-muted);font-size:.8rem">
+                                                        <%= new Date(h.registered_at).toDateString() %>
+                                                    </td>
+                                                    <td>
+                                                        <form method="POST"
+                                                            action="/hospitals/delete/<%= h.hospital_id %>"
+                                                            style="display:inline"
+                                                            onsubmit="return confirm('Remove <%= h.name %>?')">
+                                                            <button class="btn btn-danger btn-sm"><i
+                                                                    class="fa-solid fa-trash"></i></button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                                <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>

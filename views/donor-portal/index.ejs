@@ -1,0 +1,35 @@
+<%# views/donor-portal/index.ejs — Stub for Person 1 to implement %>
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8" />
+        <title>Donor Portal — Goa Blood Bank</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+        <link rel="stylesheet" href="/css/style.css" />
+    </head>
+
+    <body>
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;">
+            <div
+                style="text-align:center;max-width:420px;padding:40px;background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.08);">
+                <i class="fa-solid fa-droplet" style="font-size:3rem;color:#7f0000;"></i>
+                <h2 style="margin:16px 0 8px;font-size:1.4rem;">Donor Portal</h2>
+                <p style="color:#718096;">Welcome, <strong>
+                        <%= admin.fullName %>
+                    </strong>!</p>
+                <hr style="margin:20px 0;border-color:#e2e8f0;" />
+                <p style="color:#a0aec0;font-size:.9rem;">
+                    <i class="fa-solid fa-tools"></i> This page is being built by <strong>Person 1</strong>.<br />
+                    It will show your donation history, eligibility status, and allow you to book appointments.
+                </p>
+                <a href="/logout"
+                    style="display:inline-block;margin-top:20px;padding:10px 24px;background:#7f0000;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </a>
+            </div>
+        </div>
+    </body>
+
+    </html>

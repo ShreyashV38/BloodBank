@@ -1,0 +1,171 @@
+<%# views/reports/index.ejs — Person 2's Analytics page with Chart.js %>
+    <div class="chart-grid">
+
+        <!-- Blood Stock Bar Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-chart-bar"></i> Blood Stock Distribution</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="stockChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Request Status Doughnut -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-chart-pie"></i> Request Status Breakdown</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="requestChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Donation Units Per Group -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-chart-line"></i> Donation Volume by Blood Group
+                (Approved)</span>
+        </div>
+        <div class="chart-container" style="height:260px">
+            <canvas id="donationChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Hospitals Table -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-trophy"></i> Top Hospitals by Requests</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hospital</th>
+                        <th>Total Requests</th>
+                        <th>Fulfilled</th>
+                        <th>Fulfilment Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% topHospitals.forEach(h=> {
+                        const rate = h.total_requests > 0 ? Math.round(h.fulfilled / h.total_requests * 100) : 0;
+                        %>
+                        <tr>
+                            <td style="font-weight:600">
+                                <%= h.name %>
+                            </td>
+                            <td>
+                                <%= h.total_requests %>
+                            </td>
+                            <td>
+                                <%= h.fulfilled %>
+                            </td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div class="stock-bar" style="width:100px">
+                                        <div class="stock-bar-fill <%= rate >= 70 ? 'fill-good' : rate >= 40 ? 'fill-low' : 'fill-critical' %>"
+                                            style="width:<%= rate %>%"></div>
+                                    </div>
+                                    <span>
+                                        <%= rate %>%
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                        <% }); %>
+                            <% if (topHospitals.length===0) { %>
+                                <tr>
+                                    <td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No
+                                        hospital data yet.</td>
+                                </tr>
+                                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ── Blood Stock Bar Chart ────────────────────────────────────
+        const stockLabels = <% - JSON.stringify(bloodStock.map(r => r.group_name)) %>;
+        const stockData = <% - JSON.stringify(bloodStock.map(r => Number(r.total_units))) %>;
+        const stockColors = stockData.map(u => u <= 3 ? '#dc2626' : u <= 7 ? '#d97706' : '#16a34a');
+
+        new Chart(document.getElementById('stockChart'), {
+            type: 'bar',
+            data: {
+                labels: stockLabels,
+                datasets: [{
+                    label: 'Units Available',
+                    data: stockData,
+                    backgroundColor: stockColors,
+                    borderRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }, tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.y} unit(s)`
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // ── Request Status Doughnut ──────────────────────────────────
+        const reqLabels = <% - JSON.stringify(requestStats.map(r => r.status)) %>;
+        const reqData = <% - JSON.stringify(requestStats.map(r => Number(r.count))) %>;
+        const reqColors = reqLabels.map(s =>
+            s === 'Fulfilled' ? '#16a34a' : s === 'Rejected' ? '#dc2626' :
+                s === 'Pending' ? '#d97706' : '#2563eb'
+        );
+
+        new Chart(document.getElementById('requestChart'), {
+            type: 'doughnut',
+            data: {
+                labels: reqLabels,
+                datasets: [{ data: reqData, backgroundColor: reqColors, borderWidth: 3, borderColor: '#fff' }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // ── Donation Units Line Chart ────────────────────────────────
+        const donLabels = <% - JSON.stringify(donationStats.map(r => r.group_name)) %>;
+        const donData = <% - JSON.stringify(donationStats.map(r => Number(r.total_units || 0))) %>;
+
+        new Chart(document.getElementById('donationChart'), {
+            type: 'line',
+            data: {
+                labels: donLabels,
+                datasets: [{
+                    label: 'Units Donated (Approved)',
+                    data: donData,
+                    borderColor: '#c0392b',
+                    backgroundColor: 'rgba(192,57,43,.15)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#c0392b',
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    </script>

@@ -1,0 +1,151 @@
+@startchen
+' --- DIAGRAM SCALING & COMPRESSION SECRETS ---
+left to right direction
+skinparam nodesep 10
+skinparam ranksep 10
+scale max 1000 width
+scale max 1000 height
+
+entity blood_group {
+    id
+    group
+}
+
+entity system_user {
+    id
+    user
+    pwd
+    name
+    role
+}
+
+entity donor {
+    id
+    fname
+    lname
+    dob
+    sex
+    phone
+    bg_id
+}
+
+entity inventory {
+    id
+    units
+    exp
+}
+
+entity hospital {
+    id
+    name
+    lic
+    type
+    phone
+}
+
+entity donation {
+    id
+    type
+    date
+    units
+}
+
+entity request {
+    id
+    pat
+    diag
+    type
+    units
+    urg
+}
+
+entity fulfill {
+    id
+    units
+    temp
+}
+
+entity appointment {
+    id
+    date
+    time
+    status
+}
+
+relationship PortalLogin {
+}
+
+relationship Phlebotomist {
+}
+
+relationship Fills {
+}
+
+relationship BG_Donor {
+}
+
+relationship BG_Inv {
+}
+
+relationship BG_Don {
+}
+
+relationship BG_Req {
+}
+
+relationship Makes {
+}
+
+relationship Schedules {
+}
+
+relationship Places {
+}
+
+relationship FulfilledIn {
+}
+
+relationship ConsumedBy {
+}
+
+system_user -1- PortalLogin
+PortalLogin -1- donor
+system_user -1- PortalLogin
+PortalLogin -1- hospital
+
+system_user -1- Phlebotomist
+Phlebotomist -N- donation
+
+system_user -1- Fills
+Fills -N- fulfill
+
+blood_group -1- BG_Donor
+BG_Donor -N- donor
+
+blood_group -1- BG_Inv
+BG_Inv -N- inventory
+
+blood_group -1- BG_Don
+BG_Don -N- donation
+
+blood_group -1- BG_Req
+BG_Req -N- request
+
+donor -1- Makes
+Makes -N- donation
+
+donor -1- Schedules
+Schedules -N- appointment
+
+hospital -1- Places
+Places -N- request
+
+request -1- FulfilledIn
+FulfilledIn -N- fulfill
+
+inventory -1- ConsumedBy
+ConsumedBy -N- fulfill
+
+@endchen
+
+

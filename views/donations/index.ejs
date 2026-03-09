@@ -1,0 +1,107 @@
+<%# views/donations/index.ejs %>
+    <% if (success) { %>
+        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%- success %></div>
+        <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i>
+                    <%= error %>
+                </div>
+                <% } %>
+
+                    <!-- Record Donation Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-hand-holding-droplet"></i> Record New
+                                Donation</span>
+                            <span style="font-size:.8rem;color:var(--text-muted)">Triggers will auto-update inventory &
+                                donor eligibility</span>
+                        </div>
+                        <form method="POST" action="/donations/record">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Select Donor *</label>
+                                    <select name="donor_id" required>
+                                        <option value="">— Choose Donor —</option>
+                                        <% donors.forEach(d=> { %>
+                                            <option value="<%= d.donor_id %>" <%=d.is_eligible ? '' : 'disabled' %>>
+                                                #<%= d.donor_id %> — <%= d.first_name %> (<%= d.is_eligible
+                                                            ? '✅ Eligible' : '🚫 Ineligible' %>)
+                                            </option>
+                                            <% }); %>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Units Donated (0.1 – 2.0) *</label>
+                                    <input type="number" name="units_donated" required min="0.1" max="2" step="0.1"
+                                        placeholder="1.0" />
+                                </div>
+                                <div class="form-group" style="grid-column:1/-1;">
+                                    <label>Donation Location</label>
+                                    <input type="text" name="donated_at_location"
+                                        placeholder="e.g., City Blood Camp, Hyderabad" />
+                                </div>
+                            </div>
+                            <div style="margin-top:16px;">
+                                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Record
+                                    Donation</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Recent Donations Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent
+                                Donations</span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Donor</th>
+                                        <th>Blood Group</th>
+                                        <th>Units</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (recent.length===0) { %>
+                                        <tr>
+                                            <td colspan="6"
+                                                style="text-align:center;color:var(--text-muted);padding:28px;">No
+                                                donations yet.</td>
+                                        </tr>
+                                        <% } %>
+                                            <% recent.forEach(d=> { %>
+                                                <tr>
+                                                    <td>
+                                                        <%= new Date(d.donation_date).toDateString() %>
+                                                    </td>
+                                                    <td style="font-weight:600">
+                                                        <%= d.donor_name %>
+                                                    </td>
+                                                    <td><span class="badge badge-danger">
+                                                            <%= d.group_name %>
+                                                        </span></td>
+                                                    <td>
+                                                        <%= d.units_donated %> unit(s)
+                                                    </td>
+                                                    <td style="color:var(--text-muted)">
+                                                        <%= d.donated_at_location || '—' %>
+                                                    </td>
+                                                    <td>
+                                                        <% const
+                                                            sc={Approved:'badge-success',Collected:'badge-info',Tested:'badge-warning',Rejected:'badge-danger'};
+                                                            %>
+                                                            <span class="badge <%= sc[d.status] || 'badge-gray' %>">
+                                                                <%= d.status %>
+                                                            </span>
+                                                    </td>
+                                                </tr>
+                                                <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>

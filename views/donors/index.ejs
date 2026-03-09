@@ -1,0 +1,57 @@
+<%# views/donors/index.ejs — Person 1 page (stub) %>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-users"></i> Donors</span>
+            <a href="/donors/add" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Donor</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#ID</th>
+                        <th>Name</th>
+                        <th>Blood Group</th>
+                        <th>Phone</th>
+                        <th>Last Donated</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (!donors || donors.length===0) { %>
+                        <tr>
+                            <td colspan="6" style="text-align:center;color:var(--text-muted);padding:28px;">No donors
+                                found.</td>
+                        </tr>
+                        <% } %>
+                            <% (donors || []).forEach(d=> { %>
+                                <tr>
+                                    <td><span class="badge badge-gray">#<%= d.donor_id %></span></td>
+                                    <td style="font-weight:600">
+                                        <%= d.first_name %>
+                                            <%= d.last_name %>
+                                    </td>
+                                    <td><span class="badge badge-danger">
+                                            <%= d.group_name %>
+                                        </span></td>
+                                    <td>
+                                        <%= d.phone %>
+                                    </td>
+                                    <td style="color:var(--text-muted);font-size:.8rem">
+                                        <%= d.last_donation_date ? new Date(d.last_donation_date).toDateString()
+                                            : 'Never' %>
+                                    </td>
+                                    <td>
+                                        <% if (d.is_eligible) { %>
+                                            <span class="badge badge-success"><i class="fa-solid fa-check"></i>
+                                                Eligible</span>
+                                            <% } else { %>
+                                                <span class="badge badge-warning"><i class="fa-solid fa-clock"></i>
+                                                    Cooling Down</span>
+                                                <% } %>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>

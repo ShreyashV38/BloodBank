@@ -1,0 +1,45 @@
+<%# views/inventory/index.ejs — Blood Inventory (Person 1 page stub) %>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-flask-vial"></i> Blood Inventory</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Blood Group</th>
+                        <th>Units Available</th>
+                        <th>Earliest Expiry</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% (stock || []).forEach(row=> {
+                        const units = Number(row.total_units);
+                        const cls = units <= 3 ? 'badge-danger' : units <=7 ? 'badge-warning' : 'badge-success' ; const
+                            lbl=units <=3 ? 'Critical' : units <=7 ? 'Low' : 'Good' ; %>
+                            <tr>
+                                <td style="font-size:1.2rem;font-weight:700">
+                                    <%= row.group_name %>
+                                </td>
+                                <td style="font-weight:600">
+                                    <%= units %> unit(s)
+                                </td>
+                                <td style="color:var(--text-muted);font-size:.85rem">
+                                    <%= row.earliest_expiry ? new Date(row.earliest_expiry).toDateString() : '—' %>
+                                </td>
+                                <td><span class="badge <%= cls %>">
+                                        <%= lbl %>
+                                    </span></td>
+                            </tr>
+                            <% }); %>
+                                <% if (!stock || stock.length===0) { %>
+                                    <tr>
+                                        <td colspan="4" style="text-align:center;color:var(--text-muted);padding:28px;">
+                                            No inventory data yet.</td>
+                                    </tr>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
