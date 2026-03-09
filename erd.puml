@@ -72,79 +72,79 @@ entity appointment {
     status
 }
 
-relationship PortalLogin {
+relationship Uses_Portal {
 }
 
-relationship Phlebotomist {
+relationship Collects_Blood {
 }
 
-relationship Fills {
+relationship Approves_Release {
 }
 
-relationship BG_Donor {
+relationship Has_Blood_Type {
 }
 
-relationship BG_Inv {
+relationship Stocked_As {
 }
 
-relationship BG_Don {
+relationship Collected_As {
 }
 
-relationship BG_Req {
+relationship Requested_As {
 }
 
-relationship Makes {
+relationship Donates_Blood {
 }
 
-relationship Schedules {
+relationship Sets_Appointment {
 }
 
-relationship Places {
+relationship Raises_Request {
 }
 
-relationship FulfilledIn {
+relationship Is_Fulfilled_By {
 }
 
-relationship ConsumedBy {
+relationship Supplies_Blood {
 }
 
-system_user -1- PortalLogin
-PortalLogin -1- donor
-system_user -1- PortalLogin
-PortalLogin -1- hospital
+system_user -1- Uses_Portal
+Uses_Portal -1- donor
+system_user -1- Uses_Portal
+Uses_Portal -1- hospital
 
-system_user -1- Phlebotomist
-Phlebotomist -N- donation
+system_user -1- Collects_Blood
+Collects_Blood -N- donation
 
-system_user -1- Fills
-Fills -N- fulfill
+system_user -1- Approves_Release
+Approves_Release -N- fulfill
 
-blood_group -1- BG_Donor
-BG_Donor -N- donor
+blood_group -1- Has_Blood_Type
+Has_Blood_Type -N- donor
 
-blood_group -1- BG_Inv
-BG_Inv -N- inventory
+blood_group -1- Stocked_As
+Stocked_As -N- inventory
 
-blood_group -1- BG_Don
-BG_Don -N- donation
+blood_group -1- Collected_As
+Collected_As -N- donation
 
-blood_group -1- BG_Req
-BG_Req -N- request
+blood_group -1- Requested_As
+Requested_As -N- request
 
-donor -1- Makes
-Makes -N- donation
+donor -1- Donates_Blood
+Donates_Blood -N- donation
 
-donor -1- Schedules
-Schedules -N- appointment
+donor -1- Sets_Appointment
+Sets_Appointment -N- appointment
 
-hospital -1- Places
-Places -N- request
+hospital -1- Raises_Request
+Raises_Request -N- request
 
-request -1- FulfilledIn
-FulfilledIn -N- fulfill
+request -1- Is_Fulfilled_By
+Is_Fulfilled_By -N- fulfill
 
-inventory -1- ConsumedBy
-ConsumedBy -N- fulfill
+inventory -1- Supplies_Blood
+Supplies_Blood -N- fulfill
 
 @endchen
 
