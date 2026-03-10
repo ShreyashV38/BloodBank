@@ -23,7 +23,7 @@ You need to write SQL to create the following:
 **Advanced SQL:**
 - **View `vw_blood_stock`**: Write a query that groups by blood type and sums the available units.
 - **View `vw_donor_history`**: Write a query that joins donors with donations to show their history.
-- **Stored Procedure `sp_check_eligibility`**: Logic to check if 90 days have passed since a donor's last donation date.
+- **Stored Procedure `sp_check_eligibility`**: Logic to check if 58 days have passed since a donor's last donation date.
 - **Trigger `before_donation_insert`**: Throw an error (using `SIGNAL SQLSTATE`) if an ineligible donor tries to donate.
 - **Trigger `after_donation_insert`**: Automatically increase units in `blood_inventory` after a successful donation.
 

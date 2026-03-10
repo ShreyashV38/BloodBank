@@ -1,14 +1,8 @@
--- ============================================================
--- GOA BLOOD BANK SYSTEM — Full Database Schema  v2.0
--- Engine: MySQL 8+
--- Run this file first, then sample_data.sql
--- ============================================================
-
 CREATE DATABASE IF NOT EXISTS blood_bank_db;
 USE blood_bank_db;
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 1: blood_group  [OWNER: Person 1]
+-- TABLE 1: blood_group 
 -- Master list of 8 blood types — referenced everywhere
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE blood_group (
@@ -17,7 +11,7 @@ CREATE TABLE blood_group (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 2: system_user  [OWNER: Person 2]
+-- TABLE 2: system_user  
 -- Unified login table for ALL user types.
 -- Admins & Staff log in to the back-office dashboard.
 -- Donors & Hospitals log in to their own portals.
@@ -25,7 +19,7 @@ CREATE TABLE blood_group (
 CREATE TABLE system_user (
     user_id        INT AUTO_INCREMENT PRIMARY KEY,
     username       VARCHAR(50)  NOT NULL UNIQUE,
-    password_hash  VARCHAR(255) NOT NULL,           -- bcrypt hash
+    password_hash  VARCHAR(255) NOT NULL,          
     full_name      VARCHAR(100) NOT NULL,
     role           ENUM('Super Admin','Staff','Donor','Hospital') NOT NULL DEFAULT 'Donor',
     email          VARCHAR(100) UNIQUE,
@@ -35,7 +29,7 @@ CREATE TABLE system_user (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 3: donor  [OWNER: Person 1]
+-- TABLE 3: donor 
 -- Registered blood donors in Goa.
 -- user_id is NULL until the donor registers a portal account.
 -- ────────────────────────────────────────────────────────────
@@ -62,7 +56,7 @@ CREATE TABLE donor (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 4: blood_inventory  [OWNER: Person 1]
+-- TABLE 4: blood_inventory 
 -- Physical blood stock at the Goa Blood Bank.
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE blood_inventory (
@@ -77,7 +71,7 @@ CREATE TABLE blood_inventory (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 5: hospital  [OWNER: Person 2]
+-- TABLE 5: hospital  
 -- Goa hospitals that request blood from the bank.
 -- user_id links to the hospital's portal login account.
 -- ────────────────────────────────────────────────────────────
@@ -99,7 +93,7 @@ CREATE TABLE hospital (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 6: donation  [OWNER: Person 2]
+-- TABLE 6: donation  
 -- Every blood donation event.
 -- Triggers auto-update inventory & donor eligibility on INSERT.
 -- ────────────────────────────────────────────────────────────
@@ -126,7 +120,7 @@ CREATE TABLE donation (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 7: blood_request  [OWNER: Person 2]
+-- TABLE 7: blood_request  
 -- Blood requests raised by hospitals.
 -- Can be raised via the back-office OR the hospital portal.
 -- ────────────────────────────────────────────────────────────
@@ -150,7 +144,7 @@ CREATE TABLE blood_request (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 8: request_fulfillment  [OWNER: Person 2]
+-- TABLE 8: request_fulfillment  
 -- Tracks which inventory batch fulfilled which request,
 -- and which admin approved it.
 -- Trigger auto-deducts inventory units on INSERT.
@@ -171,7 +165,7 @@ CREATE TABLE request_fulfillment (
 );
 
 -- ────────────────────────────────────────────────────────────
--- TABLE 9: appointment  [OWNER: Person 1]
+-- TABLE 9: appointment 
 -- Donors can schedule a donation slot via the donor portal.
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE appointment (
@@ -192,7 +186,7 @@ CREATE TABLE appointment (
 -- VIEWS
 -- ============================================================
 
--- [Person 1] Current stock summary per blood group
+--  Current stock summary per blood group
 CREATE OR REPLACE VIEW vw_blood_stock AS
     SELECT
         bg.group_name,
@@ -202,7 +196,7 @@ CREATE OR REPLACE VIEW vw_blood_stock AS
     LEFT JOIN blood_inventory bi ON bg.blood_group_id = bi.blood_group_id
     GROUP BY bg.blood_group_id, bg.group_name;
 
--- [Person 1] Full donor donation history
+--  Full donor donation history
 CREATE OR REPLACE VIEW vw_donor_history AS
     SELECT
         d.donor_id,
@@ -217,7 +211,7 @@ CREATE OR REPLACE VIEW vw_donor_history AS
     JOIN donation   don  ON d.donor_id       = don.donor_id
     ORDER BY don.donation_date DESC;
 
--- [Person 2] Pending requests ordered Critical → Urgent → Normal
+--  Pending requests ordered Critical → Urgent → Normal
 CREATE OR REPLACE VIEW vw_pending_requests AS
     SELECT
         br.request_id,
@@ -243,7 +237,7 @@ CREATE OR REPLACE VIEW vw_pending_requests AS
 
 DELIMITER $$
 
--- [Person 1] Record a donation — triggers handle the rest
+--  Record a donation — triggers handle the rest
 CREATE PROCEDURE sp_record_donation (
     IN p_donor_id  INT,
     IN p_units     DECIMAL(4,2),
@@ -256,20 +250,20 @@ BEGIN
     VALUES (p_donor_id, v_bg_id, CURDATE(), p_units, p_location);
 END$$
 
--- [Person 1] Check if donor is eligible (90-day rule)
+--  Check if donor is eligible (58-day)
 CREATE PROCEDURE sp_check_eligibility (
     IN  p_donor_id INT,
     OUT p_eligible BOOLEAN
 )
 BEGIN
     SELECT
-        (last_donation_date IS NULL OR DATEDIFF(CURDATE(), last_donation_date) > 90)
+        (last_donation_date IS NULL OR DATEDIFF(CURDATE(), last_donation_date) > 58)
         AND is_eligible = TRUE
     INTO p_eligible
     FROM donor WHERE donor_id = p_donor_id;
 END$$
 
--- [Person 2] Fulfill a blood request — TRANSACTION with ROLLBACK
+--  Fulfill a blood request — TRANSACTION with ROLLBACK
 CREATE PROCEDURE sp_fulfill_request (
     IN p_request_id   INT,
     IN p_inventory_id INT,
@@ -307,7 +301,7 @@ END$$
 -- TRIGGERS
 -- ============================================================
 
--- [Person 1] After donation: update inventory + set 90-day cooldown on donor
+--  After donation: update inventory + set 58-day cooldown on donor
 CREATE TRIGGER after_donation_insert
 AFTER INSERT ON donation
 FOR EACH ROW
@@ -334,7 +328,7 @@ BEGIN
     WHERE  donor_id = NEW.donor_id;
 END$$
 
--- [Person 1] Before donation: block if donor is ineligible
+--  Before donation: block if donor is ineligible
 CREATE TRIGGER before_donation_insert
 BEFORE INSERT ON donation
 FOR EACH ROW
@@ -343,11 +337,11 @@ BEGIN
     SELECT is_eligible INTO v_eligible FROM donor WHERE donor_id = NEW.donor_id;
     IF v_eligible = FALSE THEN
         SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'Donor is not eligible to donate (90-day cooldown active)';
+            SET MESSAGE_TEXT = 'Donor is not eligible to donate (58-day cooldown active)';
     END IF;
 END$$
 
--- [Person 2] After fulfillment: auto-deduct blood units from inventory
+--  After fulfillment: auto-deduct blood units from inventory
 CREATE TRIGGER after_fulfillment_insert
 AFTER INSERT ON request_fulfillment
 FOR EACH ROW
@@ -365,7 +359,7 @@ DELIMITER ;
 -- INDEXES
 -- ============================================================
 
--- Person 1 indexes
+--  indexes
 CREATE INDEX idx_donor_blood_group     ON donor(blood_group_id);
 CREATE INDEX idx_donor_user            ON donor(user_id);
 CREATE INDEX idx_donation_date         ON donation(donation_date);
@@ -373,7 +367,7 @@ CREATE INDEX idx_inventory_blood_group ON blood_inventory(blood_group_id);
 CREATE INDEX idx_appointment_donor     ON appointment(donor_id);
 CREATE INDEX idx_appointment_date      ON appointment(scheduled_date);
 
--- Person 2 indexes
+--  indexes
 CREATE INDEX idx_hospital_user         ON hospital(user_id);
 CREATE INDEX idx_request_status        ON blood_request(status);
 CREATE INDEX idx_request_urgency       ON blood_request(urgency);
