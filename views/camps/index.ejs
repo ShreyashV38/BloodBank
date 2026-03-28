@@ -1,0 +1,176 @@
+<%# views/camps/index.ejs — Donation Camps & NGO Section %>
+<%
+function bloodClass(g) {
+    const m = {'A+':'bg-a-pos','A-':'bg-a-neg','B+':'bg-b-pos','B-':'bg-b-neg','AB+':'bg-ab-pos','AB-':'bg-ab-neg','O+':'bg-o-pos','O-':'bg-o-neg'};
+    return m[g] || '';
+}
+const statusBadge = { Upcoming: 'badge-info', Ongoing: 'badge-success', Completed: 'badge-gray', Cancelled: 'badge-danger' };
+%>
+
+<% if (success) { %>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+<% } %>
+
+<!-- Upcoming Camps Grid -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-campground"></i> Upcoming & Ongoing Camps (<%= upcoming.length %>)</span>
+    </div>
+    <% if (upcoming.length === 0) { %>
+        <p style="color:var(--text-muted);text-align:center;padding:28px;">No upcoming camps. Create one below!</p>
+    <% } else { %>
+        <div class="camp-grid">
+            <% upcoming.forEach(c => { %>
+                <div class="camp-card">
+                    <span class="camp-status badge <%= statusBadge[c.status] || 'badge-gray' %>"><%= c.status %></span>
+                    <h3><i class="fa-solid fa-tent" style="color:var(--blood-light);margin-right:6px;"></i> <%= c.name %></h3>
+                    <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;">
+                        Organized by <strong><%= c.organizer_display_name %></strong> (<%= c.organizer_type %>)
+                    </div>
+                    <div class="camp-meta">
+                        <span><i class="fa-solid fa-calendar"></i> <%= new Date(c.camp_date).toDateString() %></span>
+                        <span><i class="fa-solid fa-clock"></i> <%= c.start_time || 'TBD' %> — <%= c.end_time || 'TBD' %></span>
+                        <span><i class="fa-solid fa-location-dot"></i> <%= c.location %><%= c.city ? ', ' + c.city : '' %></span>
+                        <span><i class="fa-solid fa-users"></i> Expected: <%= c.expected_donors %> donors</span>
+                        <% if (c.contact_person) { %>
+                            <span><i class="fa-solid fa-phone"></i> <%= c.contact_person %> — <%= c.contact_phone || 'N/A' %></span>
+                        <% } %>
+                    </div>
+                    <% if (c.description) { %>
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin-top:10px;line-height:1.5;"><%= c.description %></p>
+                    <% } %>
+                </div>
+            <% }); %>
+        </div>
+    <% } %>
+</div>
+
+<!-- Create New Camp Form -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-plus"></i> Schedule New Donation Camp</span>
+    </div>
+    <form method="POST" action="/camps/add">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Camp Name *</label>
+                <input type="text" name="name" required placeholder="e.g., Blood Donation Drive 2026" />
+            </div>
+            <div class="form-group">
+                <label>Organizer Type *</label>
+                <select name="organizer_type" required>
+                    <option value="NGO">NGO</option>
+                    <option value="Hospital">Hospital</option>
+                    <option value="Government">Government</option>
+                    <option value="CSR">Corporate CSR</option>
+                    <option value="College">College / University</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Organizer Name *</label>
+                <input type="text" name="organizer_name" required placeholder="Organization name" />
+            </div>
+            <div class="form-group">
+                <label>NGO (if applicable)</label>
+                <select name="ngo_id">
+                    <option value="">— None —</option>
+                    <% ngos.forEach(n => { %>
+                        <option value="<%= n.ngo_id %>"><%= n.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Hospital Partner</label>
+                <select name="hospital_id">
+                    <option value="">— None —</option>
+                    <% hospitals.forEach(h => { %>
+                        <option value="<%= h.hospital_id %>"><%= h.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Camp Date *</label>
+                <input type="date" name="camp_date" required />
+            </div>
+            <div class="form-group">
+                <label>Start Time</label>
+                <input type="time" name="start_time" />
+            </div>
+            <div class="form-group">
+                <label>End Time</label>
+                <input type="time" name="end_time" />
+            </div>
+            <div class="form-group">
+                <label>Location *</label>
+                <input type="text" name="location" required placeholder="Venue address" />
+            </div>
+            <div class="form-group">
+                <label>City</label>
+                <select name="city">
+                    <option value="">— Select —</option>
+                    <option value="Panaji">Panaji</option>
+                    <option value="Margao">Margao</option>
+                    <option value="Vasco">Vasco da Gama</option>
+                    <option value="Mapusa">Mapusa</option>
+                    <option value="Ponda">Ponda</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Expected Donors</label>
+                <input type="number" name="expected_donors" min="0" placeholder="50" />
+            </div>
+            <div class="form-group">
+                <label>Contact Person</label>
+                <input type="text" name="contact_person" placeholder="Name" />
+            </div>
+            <div class="form-group">
+                <label>Contact Phone</label>
+                <input type="tel" name="contact_phone" placeholder="Phone" maxlength="15" />
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+                <label>Description</label>
+                <textarea name="description" rows="2" placeholder="Details about the camp..."></textarea>
+            </div>
+        </div>
+        <div style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-campground"></i> Create Camp</button>
+        </div>
+    </form>
+</div>
+
+<!-- Past Camps -->
+<% if (past.length > 0) { %>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-history"></i> Past Camps</span>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Camp</th>
+                    <th>Organizer</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Donors</th>
+                    <th>Units</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% past.forEach(c => { %>
+                <tr>
+                    <td style="font-weight:600"><%= c.name %></td>
+                    <td><%= c.organizer_display_name %></td>
+                    <td style="color:var(--text-muted);font-size:.82rem"><%= new Date(c.camp_date).toDateString() %></td>
+                    <td><%= c.city || '—' %></td>
+                    <td><%= c.actual_donors %>/<%= c.expected_donors %></td>
+                    <td><%= c.units_collected %></td>
+                    <td><span class="badge <%= statusBadge[c.status] %>"><%= c.status %></span></td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<% } %>

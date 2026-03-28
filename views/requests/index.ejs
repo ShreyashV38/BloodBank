@@ -1,6 +1,6 @@
 <%# views/requests/index.ejs %>
     <% if (success) { %>
-        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%- success %></div>
+        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
         <% } %>
             <% if (typeof error==='string' && error) { %>
                 <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i>
@@ -198,7 +198,7 @@
                     <div id="approveModal"
                         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
                         <div
-                            style="background:white;border-radius:16px;padding:32px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+                            style="background:var(--bg-secondary, #1a1a2e);border-radius:16px;padding:32px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid var(--border-color, #2a2a3e);">
                             <h3 style="margin-bottom:20px;"><i class="fa-solid fa-check-circle"
                                     style="color:var(--success)"></i> Approve Request #<span id="modalReqId"></span>
                             </h3>

@@ -1,35 +1,243 @@
-<%# views/donor-portal/index.ejs — Stub for Person 1 to implement %>
-    <!DOCTYPE html>
-    <html lang="en">
-
-    <head>
-        <meta charset="UTF-8" />
-        <title>Donor Portal — Goa Blood Bank</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-        <link rel="stylesheet" href="/css/style.css" />
-    </head>
-
-    <body>
-        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;">
-            <div
-                style="text-align:center;max-width:420px;padding:40px;background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.08);">
-                <i class="fa-solid fa-droplet" style="font-size:3rem;color:#7f0000;"></i>
-                <h2 style="margin:16px 0 8px;font-size:1.4rem;">Donor Portal</h2>
-                <p style="color:#718096;">Welcome, <strong>
-                        <%= admin.fullName %>
-                    </strong>!</p>
-                <hr style="margin:20px 0;border-color:#e2e8f0;" />
-                <p style="color:#a0aec0;font-size:.9rem;">
-                    <i class="fa-solid fa-tools"></i> This page is being built by <strong>Person 1</strong>.<br />
-                    It will show your donation history, eligibility status, and allow you to book appointments.
-                </p>
-                <a href="/logout"
-                    style="display:inline-block;margin-top:20px;padding:10px 24px;background:#7f0000;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;">
-                    <i class="fa-solid fa-right-from-bracket"></i> Logout
-                </a>
+<%# views/donor-portal/index.ejs — Full Donor Portal %>
+<%
+function bloodClass(g) {
+    const m = {'A+':'bg-a-pos','A-':'bg-a-neg','B+':'bg-b-pos','B-':'bg-b-neg','AB+':'bg-ab-pos','AB-':'bg-ab-neg','O+':'bg-o-pos','O-':'bg-o-neg'};
+    return m[g] || '';
+}
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Donor Portal — Goa Blood Bank</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>Goa Blood Bank</h2>
+                <p>Donor Portal</p>
             </div>
-        </div>
-    </body>
+            <nav class="portal-nav">
+                <a href="/donor-portal" class="active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+            </nav>
+            <div class="portal-footer">
+                <% if (admin) { %>
+                    <div style="margin-bottom:12px;">
+                        <div class="admin-name" style="color:#fff;"><%= admin.fullName %></div>
+                        <div class="admin-role" style="color:rgba(255,255,255,.5);"><%= admin.role %></div>
+                    </div>
+                <% } %>
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
 
-    </html>
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-hand-holding-droplet"></i> 
+                    Welcome, <%= donor ? donor.first_name : admin.fullName %>!</h1>
+                <p><i class="fa-solid fa-location-dot"></i> Goa Blood Bank — Donor Dashboard</p>
+            </div>
+
+            <% if (success) { %>
+                <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+            <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+            <% } %>
+
+            <% if (donor) { %>
+                <!-- Eligibility + Profile Row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                    <!-- Eligibility Status -->
+                    <div class="eligibility-card <%= donor.is_eligible ? 'eligible' : 'ineligible' %>">
+                        <div style="text-align:center;">
+                            <% if (donor.is_eligible) { %>
+                                <div class="countdown-circle" style="border:3px solid var(--success);margin-bottom:12px;">
+                                    <div class="days" style="color:var(--success);">✓</div>
+                                    <div class="label">Eligible</div>
+                                </div>
+                                <h3 style="color:var(--success);margin-bottom:6px;">You Can Donate!</h3>
+                                <p style="font-size:.85rem;color:var(--text-muted);">You are eligible to donate blood. Book an appointment below.</p>
+                            <% } else { %>
+                                <div class="countdown-circle" style="border:3px solid var(--warning);margin-bottom:12px;">
+                                    <div class="days" style="color:var(--warning);"><%= daysUntilEligible %></div>
+                                    <div class="label">Days Left</div>
+                                </div>
+                                <h3 style="color:var(--warning);margin-bottom:6px;">Cooling Down</h3>
+                                <p style="font-size:.85rem;color:var(--text-muted);">
+                                    58-day mandatory rest period after your last donation on 
+                                    <%= new Date(donor.last_donation_date).toDateString() %>.
+                                </p>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Profile Card -->
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-id-card"></i> My Profile</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.85rem;">
+                            <div>
+                                <div style="color:var(--text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Name</div>
+                                <div style="font-weight:600;margin-top:2px;"><%= donor.first_name %> <%= donor.last_name %></div>
+                            </div>
+                            <div>
+                                <div style="color:var(--text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Blood Group</div>
+                                <div style="margin-top:4px;">
+                                    <span class="blood-badge <%= bloodClass(donor.group_name) %>"><%= donor.group_name %></span>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="color:var(--text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Phone</div>
+                                <div style="margin-top:2px;"><%= donor.phone %></div>
+                            </div>
+                            <div>
+                                <div style="color:var(--text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Gender</div>
+                                <div style="margin-top:2px;"><%= donor.gender %></div>
+                            </div>
+                            <div>
+                                <div style="color:var(--text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">DOB</div>
+                                <div style="margin-top:2px;"><%= new Date(donor.date_of_birth).toDateString() %></div>
+                            </div>
+                            <div>
+                                <div style="color:var(--text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Total Donations</div>
+                                <div style="font-weight:700;margin-top:2px;color:var(--blood-light);"><%= donations.length %></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="num"><%= donations.length %></div>
+                        <div class="lbl">Total Donations</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num"><%= donations.reduce((s,d) => s + Number(d.units_donated), 0) %></div>
+                        <div class="lbl">Units Donated</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num"><%= appointments.filter(a => a.status === 'Scheduled').length %></div>
+                        <div class="lbl">Upcoming Appointments</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num"><%= donor.is_eligible ? '✓' : daysUntilEligible + 'd' %></div>
+                        <div class="lbl">Status</div>
+                    </div>
+                </div>
+
+                <!-- Book Appointment -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-calendar-plus"></i> Book Appointment</span>
+                    </div>
+                    <form method="POST" action="/donor-portal/book-appointment">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Date *</label>
+                                <input type="date" name="scheduled_date" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Time Slot *</label>
+                                <select name="time_slot" required>
+                                    <option value="09:00">09:00 AM</option>
+                                    <option value="10:00">10:00 AM</option>
+                                    <option value="11:00">11:00 AM</option>
+                                    <option value="14:00">02:00 PM</option>
+                                    <option value="15:00">03:00 PM</option>
+                                    <option value="16:00">04:00 PM</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Location</label>
+                                <select name="location">
+                                    <option value="GMC Blood Bank, Bambolim, Goa">GMC Blood Bank, Bambolim</option>
+                                    <option value="Manipal Hospital, Panaji">Manipal Hospital, Panaji</option>
+                                    <option value="District Hospital, Margao">District Hospital, Margao</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes</label>
+                                <input type="text" name="notes" placeholder="Any special notes..." />
+                            </div>
+                        </div>
+                        <div style="margin-top:14px;">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calendar-check"></i> Book Appointment</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Appointments -->
+                <% const scheduled = appointments.filter(a => a.status === 'Scheduled'); %>
+                <% if (scheduled.length > 0) { %>
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-calendar"></i> Upcoming Appointments</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Date</th><th>Time</th><th>Location</th><th>Action</th></tr></thead>
+                            <tbody>
+                                <% scheduled.forEach(a => { %>
+                                <tr>
+                                    <td style="font-weight:600"><%= new Date(a.scheduled_date).toDateString() %></td>
+                                    <td><%= a.time_slot || '—' %></td>
+                                    <td style="color:var(--text-muted);font-size:.82rem"><%= a.location %></td>
+                                    <td>
+                                        <form method="POST" action="/donor-portal/cancel-appointment/<%= a.appointment_id %>"
+                                              style="display:inline" onsubmit="return confirm('Cancel this appointment?')">
+                                            <button class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Donation History -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Donation History</span>
+                    </div>
+                    <% if (donations.length === 0) { %>
+                        <p style="color:var(--text-muted);text-align:center;padding:24px;">No donations recorded yet. Start your journey!</p>
+                    <% } else { %>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Date</th><th>Blood Group</th><th>Units</th><th>Location</th><th>Status</th></tr>
+                                </thead>
+                                <tbody>
+                                    <% donations.forEach(d => {
+                                        const sc = {Approved:'badge-success',Collected:'badge-info',Tested:'badge-warning',Rejected:'badge-danger'};
+                                    %>
+                                    <tr>
+                                        <td><%= new Date(d.donation_date).toDateString() %></td>
+                                        <td><span class="blood-badge <%= bloodClass(d.group_name) %>"><%= d.group_name %></span></td>
+                                        <td><%= d.units_donated %> unit(s)</td>
+                                        <td style="color:var(--text-muted);font-size:.82rem"><%= d.donated_at_location || '—' %></td>
+                                        <td><span class="badge <%= sc[d.status] || 'badge-gray' %>"><%= d.status %></span></td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,8 +1,11 @@
 // ============================================================
-// routes/requests.js — Blood Request Management  [PERSON 2]
+// routes/requests.js — Blood Request Management
+// Security hardened: validation, param checks, sanitization
 // ============================================================
 import express from 'express';
 import db from '../config/db.js';
+import { validateParamId, sanitizeBody } from '../middleware/security.js';
+import { validateBloodRequest } from '../middleware/validators.js';
 
 const router = express.Router();
 
@@ -22,7 +25,7 @@ router.get('/', async (req, res) => {
         );
         res.render('requests/index', {
             title: 'Blood Requests', pending, hospitals, bloodGroups, history,
-            error: null, success: req.query.success || null
+            error: req.query.error || null, success: req.query.success || null
         });
     } catch (err) {
         console.error(err);
@@ -30,9 +33,20 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /requests/add — raise a new blood request
-router.post('/add', async (req, res) => {
+// POST /requests/add — raise a new blood request (validated)
+router.post('/add', sanitizeBody, validateBloodRequest, async (req, res) => {
+    if (req.validationError) {
+        return res.redirect('/requests?error=' + encodeURIComponent(req.validationError));
+    }
+
     const { hospital_id, blood_group_id, units_required, urgency, required_by_date, purpose } = req.body;
+
+    // Whitelist urgency values
+    const validUrgencies = ['Normal', 'Urgent', 'Critical'];
+    if (!validUrgencies.includes(urgency)) {
+        return res.redirect('/requests?error=' + encodeURIComponent('Invalid urgency level.'));
+    }
+
     try {
         await db.query(
             `INSERT INTO blood_request (hospital_id, blood_group_id, units_required, urgency, required_by_date, purpose)
@@ -42,29 +56,42 @@ router.post('/add', async (req, res) => {
         res.redirect('/requests?success=Blood+request+submitted+successfully');
     } catch (err) {
         console.error(err);
-        res.redirect('/requests');
+        res.redirect('/requests?error=' + encodeURIComponent('Failed to submit request.'));
     }
 });
 
-// POST /requests/approve/:id — calls sp_fulfill_request (handles transaction + deducts inventory)
-router.post('/approve/:id', async (req, res) => {
-    const { inventory_id, units_provided } = req.body;
+// POST /requests/approve/:id — calls sp_fulfill_request
+router.post('/approve/:id', validateParamId(), sanitizeBody, async (req, res) => {
+    const { inventory_id, units_provided, dispatch_temperature, transport_mode } = req.body;
     const request_id = req.params.id;
     const admin_id = req.session.adminId;
+
+    // Validate all required fields
+    if (!inventory_id || !/^\d+$/.test(inventory_id)) {
+        return res.redirect('/requests?error=' + encodeURIComponent('Invalid inventory ID.'));
+    }
+    if (!units_provided || isNaN(units_provided) || parseFloat(units_provided) <= 0) {
+        return res.redirect('/requests?error=' + encodeURIComponent('Invalid units provided.'));
+    }
+    if (!admin_id) {
+        return res.redirect('/requests?error=' + encodeURIComponent('Admin session required.'));
+    }
+
     try {
         await db.query(
-            'CALL sp_fulfill_request(?, ?, ?, ?)',
-            [request_id, inventory_id, units_provided, admin_id]
+            'CALL sp_fulfill_request(?, ?, ?, ?, ?, ?)',
+            [request_id, parseInt(inventory_id), parseFloat(units_provided), admin_id,
+             dispatch_temperature || null, transport_mode || null]
         );
         res.redirect('/requests?success=Request+approved+and+inventory+deducted+successfully');
     } catch (err) {
         console.error(err);
-        res.redirect(`/requests?error=${encodeURIComponent(err.message)}`);
+        res.redirect('/requests?error=' + encodeURIComponent(err.message));
     }
 });
 
-// POST /requests/reject/:id — reject a request
-router.post('/reject/:id', async (req, res) => {
+// POST /requests/reject/:id — reject a request (validated)
+router.post('/reject/:id', validateParamId(), async (req, res) => {
     try {
         await db.query(
             "UPDATE blood_request SET status = 'Rejected' WHERE request_id = ?",

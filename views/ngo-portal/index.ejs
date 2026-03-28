@@ -1,0 +1,170 @@
+<%# views/ngo-portal/index.ejs — NGO self-service portal %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= ngo ? ngo.name : 'NGO Portal' %> — Goa Blood Bank</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>Goa Blood Bank</h2>
+                <p><%= ngo ? ngo.name : 'NGO Portal' %></p>
+            </div>
+            <nav class="portal-nav">
+                <a href="/ngo-portal" class="active"><i class="fa-solid fa-campground"></i> My Camps</a>
+            </nav>
+            <div class="portal-footer">
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-people-group"></i> <%= ngo ? ngo.name : 'NGO Portal' %></h1>
+                <% if (ngo) { %>
+                    <p>
+                        <i class="fa-solid fa-id-card"></i> <%= ngo.registration_number %>
+                        &nbsp;|&nbsp; <i class="fa-solid fa-crosshairs"></i> <%= ngo.focus_area %>
+                        <% if (ngo.city) { %>&nbsp;|&nbsp; <i class="fa-solid fa-location-dot"></i> <%= ngo.city %>, Goa<% } %>
+                    </p>
+                <% } %>
+            </div>
+
+            <% if (success) { %>
+                <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+            <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+            <% } %>
+
+            <% if (ngo) { %>
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="num"><%= camps.filter(c => c.status === 'Upcoming').length %></div>
+                        <div class="lbl">Upcoming</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num"><%= camps.filter(c => c.status === 'Completed').length %></div>
+                        <div class="lbl">Completed</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num"><%= camps.reduce((s, c) => s + (c.actual_donors || 0), 0) %></div>
+                        <div class="lbl">Total Donors</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num"><%= camps.reduce((s, c) => s + Number(c.units_collected || 0), 0) %></div>
+                        <div class="lbl">Units Collected</div>
+                    </div>
+                </div>
+
+                <!-- Create Camp Form -->
+                <div class="card" style="margin-bottom:28px;">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-plus"></i> Organize New Camp</span>
+                    </div>
+                    <form method="POST" action="/ngo-portal/camp">
+                        <div class="form-grid" style="padding:0 20px 20px;">
+                            <div class="form-group">
+                                <label>Camp Name *</label>
+                                <input type="text" name="name" required placeholder="Blood Donation Drive" />
+                            </div>
+                            <div class="form-group">
+                                <label>Hospital Partner</label>
+                                <select name="hospital_id">
+                                    <option value="">— None —</option>
+                                    <% hospitals.forEach(h => { %>
+                                        <option value="<%= h.hospital_id %>"><%= h.name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Camp Date *</label>
+                                <input type="date" name="camp_date" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Start Time</label>
+                                <input type="time" name="start_time" />
+                            </div>
+                            <div class="form-group">
+                                <label>End Time</label>
+                                <input type="time" name="end_time" />
+                            </div>
+                            <div class="form-group">
+                                <label>Expected Donors</label>
+                                <input type="number" name="expected_donors" min="0" placeholder="50" />
+                            </div>
+                            <div class="form-group" style="grid-column:1/-1;">
+                                <label>Location *</label>
+                                <input type="text" name="location" required placeholder="Venue address" />
+                            </div>
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" name="city" placeholder="City" />
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Person</label>
+                                <input type="text" name="contact_person" placeholder="Name" />
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Phone</label>
+                                <input type="tel" name="contact_phone" placeholder="Phone" />
+                            </div>
+                            <div class="form-group" style="grid-column:1/-1;">
+                                <label>Description</label>
+                                <textarea name="description" rows="2" placeholder="Camp details..."></textarea>
+                            </div>
+                        </div>
+                        <div style="padding:0 20px 20px;">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-campground"></i> Create Camp</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Camp History -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-history"></i> My Camps (<%= camps.length %>)</span>
+                    </div>
+                    <% if (camps.length === 0) { %>
+                        <p style="padding:24px;color:var(--text-muted);text-align:center;">No camps created yet.</p>
+                    <% } else { %>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Camp</th><th>Date</th><th>Location</th><th>Expected</th><th>Actual</th><th>Units</th><th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% camps.forEach(c => {
+                                        const sb = {Upcoming:'badge-info',Ongoing:'badge-success',Completed:'badge-gray',Cancelled:'badge-danger'};
+                                    %>
+                                    <tr>
+                                        <td style="font-weight:600"><%= c.name %></td>
+                                        <td style="font-size:.82rem;color:var(--text-muted)"><%= new Date(c.camp_date).toDateString() %></td>
+                                        <td><%= c.city || c.location %></td>
+                                        <td><%= c.expected_donors %></td>
+                                        <td><%= c.actual_donors %></td>
+                                        <td><%= c.units_collected %></td>
+                                        <td><span class="badge <%= sb[c.status] %>"><%= c.status %></span></td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,8 +1,11 @@
 // ============================================================
-// routes/donations.js — Record Donations  [PERSON 2]
+// routes/donations.js — Record Donations
+// Security hardened: validation, sanitization
 // ============================================================
 import express from 'express';
 import db from '../config/db.js';
+import { sanitizeBody } from '../middleware/security.js';
+import { validateDonation } from '../middleware/validators.js';
 
 const router = express.Router();
 
@@ -29,8 +32,21 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /donations/record — insert a donation (triggers fire automatically)
-router.post('/record', async (req, res) => {
+// POST /donations/record — insert a donation (validated)
+router.post('/record', sanitizeBody, validateDonation, async (req, res) => {
+    if (req.validationError) {
+        const [donors] = await db.query('SELECT donor_id, first_name, last_name, is_eligible FROM donor ORDER BY first_name');
+        const [recent] = await db.query(
+            `SELECT don.*, CONCAT(d.first_name,' ',d.last_name) AS donor_name, bg.group_name
+             FROM donation don JOIN donor d ON don.donor_id = d.donor_id
+             JOIN blood_group bg ON don.blood_group_id = bg.blood_group_id
+             ORDER BY don.donation_date DESC LIMIT 20`
+        );
+        return res.render('donations/index', {
+            title: 'Record Donation', donors, recent,
+            error: req.validationError, success: null
+        });
+    }
     const { donor_id, units_donated, donated_at_location } = req.body;
     let donors = [], recent = [];
     try {

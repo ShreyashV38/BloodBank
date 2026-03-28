@@ -1,57 +1,91 @@
-<%# views/donors/index.ejs — Person 1 page (stub) %>
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title"><i class="fa-solid fa-users"></i> Donors</span>
-            <a href="/donors/add" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Donor</a>
+<%# views/donors/index.ejs — Full Donor List with Search, Filter, Blood Group Colors %>
+<%
+function bloodClass(g) {
+    const m = {'A+':'bg-a-pos','A-':'bg-a-neg','B+':'bg-b-pos','B-':'bg-b-neg','AB+':'bg-ab-pos','AB-':'bg-ab-neg','O+':'bg-o-pos','O-':'bg-o-neg'};
+    return m[g] || '';
+}
+%>
+
+<!-- Search & Filter Bar -->
+<div class="card" style="margin-bottom:16px;">
+    <form method="GET" action="/donors" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:200px;">
+            <label><i class="fa-solid fa-magnifying-glass"></i> Search</label>
+            <input type="text" name="search" placeholder="Name, phone, or email..." value="<%= search %>" />
         </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#ID</th>
-                        <th>Name</th>
-                        <th>Blood Group</th>
-                        <th>Phone</th>
-                        <th>Last Donated</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% if (!donors || donors.length===0) { %>
-                        <tr>
-                            <td colspan="6" style="text-align:center;color:var(--text-muted);padding:28px;">No donors
-                                found.</td>
-                        </tr>
-                        <% } %>
-                            <% (donors || []).forEach(d=> { %>
-                                <tr>
-                                    <td><span class="badge badge-gray">#<%= d.donor_id %></span></td>
-                                    <td style="font-weight:600">
-                                        <%= d.first_name %>
-                                            <%= d.last_name %>
-                                    </td>
-                                    <td><span class="badge badge-danger">
-                                            <%= d.group_name %>
-                                        </span></td>
-                                    <td>
-                                        <%= d.phone %>
-                                    </td>
-                                    <td style="color:var(--text-muted);font-size:.8rem">
-                                        <%= d.last_donation_date ? new Date(d.last_donation_date).toDateString()
-                                            : 'Never' %>
-                                    </td>
-                                    <td>
-                                        <% if (d.is_eligible) { %>
-                                            <span class="badge badge-success"><i class="fa-solid fa-check"></i>
-                                                Eligible</span>
-                                            <% } else { %>
-                                                <span class="badge badge-warning"><i class="fa-solid fa-clock"></i>
-                                                    Cooling Down</span>
-                                                <% } %>
-                                    </td>
-                                </tr>
-                                <% }); %>
-                </tbody>
-            </table>
+        <div class="form-group" style="width:160px;">
+            <label>Blood Group</label>
+            <select name="blood_group">
+                <option value="">All Groups</option>
+                <% (bloodGroups || []).forEach(bg => { %>
+                    <option value="<%= bg.blood_group_id %>" <%= blood_group == bg.blood_group_id ? 'selected' : '' %>>
+                        <%= bg.group_name %>
+                    </option>
+                <% }); %>
+            </select>
         </div>
+        <div class="form-group" style="width:160px;">
+            <label>Status</label>
+            <select name="eligibility">
+                <option value="">All</option>
+                <option value="eligible" <%= eligibility === 'eligible' ? 'selected' : '' %>>Eligible</option>
+                <option value="ineligible" <%= eligibility === 'ineligible' ? 'selected' : '' %>>Cooling Down</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="height:40px;">
+            <i class="fa-solid fa-filter"></i> Filter
+        </button>
+        <a href="/donors" class="btn btn-outline btn-sm" style="height:40px;">
+            <i class="fa-solid fa-xmark"></i> Clear
+        </a>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-users"></i> Donors (<%= donors.length %>)</span>
+        <a href="/donors/add" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Donor</a>
     </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#ID</th><th>Name</th><th>Blood Group</th><th>Gender</th><th>Phone</th><th>Last Donated</th><th>Status</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (!donors || donors.length === 0) { %>
+                    <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:28px;">
+                        <%= search ? 'No donors match your search.' : 'No donors found.' %></td></tr>
+                <% } %>
+                <% (donors || []).forEach(d => { %>
+                <tr>
+                    <td><span class="badge badge-gray">#<%= d.donor_id %></span></td>
+                    <td style="font-weight:600"><%= d.first_name %> <%= d.last_name %></td>
+                    <td><span class="blood-badge <%= bloodClass(d.group_name) %>"><%= d.group_name %></span></td>
+                    <td style="color:var(--text-muted);font-size:.82rem"><%= d.gender %></td>
+                    <td><%= d.phone %></td>
+                    <td style="color:var(--text-muted);font-size:.8rem">
+                        <%= d.last_donation_date ? new Date(d.last_donation_date).toDateString() : 'Never' %>
+                    </td>
+                    <td>
+                        <% if (d.is_eligible) { %>
+                            <span class="badge badge-success"><i class="fa-solid fa-check"></i> Eligible</span>
+                        <% } else { %>
+                            <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Cooling Down</span>
+                        <% } %>
+                    </td>
+                    <td style="display:flex;gap:4px;">
+                        <a href="/donors/view/<%= d.donor_id %>" class="btn btn-outline btn-sm" title="View Details">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                        <a href="/donors/edit/<%= d.donor_id %>" class="btn btn-outline btn-sm" title="Edit">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+                    </td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,112 @@
+<%# views/admin/users.ejs — User Management (Super Admin) %>
+<% if (success) { %>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+<% } %>
+<% if (error) { %>
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+<% } %>
+
+<!-- Stats -->
+<div class="stats-row" style="margin-bottom:20px;">
+    <div class="stat-box">
+        <div class="num"><%= users.length %></div>
+        <div class="lbl">Total Users</div>
+    </div>
+    <div class="stat-box">
+        <div class="num"><%= users.filter(u => u.role === 'Donor').length %></div>
+        <div class="lbl">Donors</div>
+    </div>
+    <div class="stat-box">
+        <div class="num"><%= users.filter(u => u.role === 'Hospital').length %></div>
+        <div class="lbl">Hospitals</div>
+    </div>
+    <div class="stat-box">
+        <div class="num"><%= users.filter(u => u.role === 'NGO').length %></div>
+        <div class="lbl">NGOs</div>
+    </div>
+    <div class="stat-box">
+        <div class="num"><%= users.filter(u => u.locked_until && new Date(u.locked_until) > new Date()).length %></div>
+        <div class="lbl">Locked</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-users-gear"></i> System Users</span>
+        <a href="/admin/audit" class="btn btn-outline btn-sm"><i class="fa-solid fa-shield-halved"></i> Audit Log</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th><th>Username</th><th>Full Name</th><th>Role</th><th>Email</th>
+                    <th>Status</th><th>Fails</th><th>Created</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% users.forEach(u => {
+                    const isLocked = u.locked_until && new Date(u.locked_until) > new Date();
+                    const roleBadge = {
+                        'Super Admin': 'badge-danger',
+                        'Staff': 'badge-warning',
+                        'Donor': 'badge-success',
+                        'Hospital': 'badge-info',
+                        'NGO': 'badge-primary'
+                    };
+                %>
+                <tr style="<%= !u.is_active ? 'opacity:.5;' : '' %>">
+                    <td><span class="badge badge-gray">#<%= u.user_id %></span></td>
+                    <td style="font-weight:600"><%= u.username %></td>
+                    <td><%= u.full_name %></td>
+                    <td>
+                        <span class="badge <%= roleBadge[u.role] || 'badge-gray' %>"><%= u.role %></span>
+                    </td>
+                    <td style="color:var(--text-muted);font-size:.82rem"><%= u.email || '—' %></td>
+                    <td>
+                        <% if (isLocked) { %>
+                            <span class="badge badge-danger"><i class="fa-solid fa-lock"></i> Locked</span>
+                        <% } else if (!u.is_active) { %>
+                            <span class="badge badge-warning"><i class="fa-solid fa-ban"></i> Disabled</span>
+                        <% } else { %>
+                            <span class="badge badge-success"><i class="fa-solid fa-check"></i> Active</span>
+                        <% } %>
+                    </td>
+                    <td>
+                        <% if (u.failed_login_count > 0) { %>
+                            <span class="badge badge-danger"><%= u.failed_login_count %></span>
+                        <% } else { %>
+                            <span style="color:var(--text-muted);">0</span>
+                        <% } %>
+                    </td>
+                    <td style="color:var(--text-muted);font-size:.8rem"><%= new Date(u.created_at).toDateString() %></td>
+                    <td>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                            <!-- Toggle active -->
+                            <form method="POST" action="/admin/users/toggle/<%= u.user_id %>" style="display:inline">
+                                <button class="btn btn-sm <%= u.is_active ? 'btn-outline' : 'btn-primary' %>" title="<%= u.is_active ? 'Disable' : 'Enable' %>">
+                                    <i class="fa-solid fa-<%= u.is_active ? 'ban' : 'check' %>"></i>
+                                </button>
+                            </form>
+                            <!-- Unlock if locked -->
+                            <% if (isLocked) { %>
+                            <form method="POST" action="/admin/users/unlock/<%= u.user_id %>" style="display:inline">
+                                <button class="btn btn-warning btn-sm" title="Unlock"><i class="fa-solid fa-lock-open"></i></button>
+                            </form>
+                            <% } %>
+                            <!-- Role change -->
+                            <form method="POST" action="/admin/users/change-role/<%= u.user_id %>" style="display:inline-flex;gap:4px;">
+                                <select name="role" style="font-size:.75rem;padding:2px 6px;border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);">
+                                    <% ['Super Admin','Staff','Donor','Hospital','NGO'].forEach(r => { %>
+                                        <option value="<%= r %>" <%= u.role === r ? 'selected' : '' %>><%= r %></option>
+                                    <% }); %>
+                                </select>
+                                <button class="btn btn-outline btn-sm" title="Change Role"><i class="fa-solid fa-arrow-right"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,100 +1,113 @@
-<%# views/layout.ejs — Shared layout for all pages %>
-  <!DOCTYPE html>
-  <html lang="en">
-
-  <head>
+<%# views/layout.ejs — Blood-themed shared layout %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      <%= typeof title !=='undefined' ? title + ' — Goa Blood Bank' : 'Goa Blood Bank' %>
-    </title>
+    <title><%= typeof title !=='undefined' ? title + ' — Goa Blood Bank' : 'Goa Blood Bank' %></title>
+    <meta name="description" content="Goa Blood Bank Management System — State of Goa, India" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="/css/style.css" />
-  </head>
+</head>
+<body>
+    <%
+    // Blood group color helper — generates CSS class for any blood group name
+    function bloodClass(groupName) {
+        const map = {
+            'A+': 'bg-a-pos', 'A-': 'bg-a-neg',
+            'B+': 'bg-b-pos', 'B-': 'bg-b-neg',
+            'AB+': 'bg-ab-pos', 'AB-': 'bg-ab-neg',
+            'O+': 'bg-o-pos', 'O-': 'bg-o-neg'
+        };
+        return map[groupName] || '';
+    }
+    %>
 
-  <body>
     <!-- Sidebar Navigation -->
     <nav class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <i class="fa-solid fa-droplet"></i>
-          <span>Goa <strong>Blood Bank</strong></span>
-        </div>
-        <div class="location-badge">
-          <i class="fa-solid fa-location-dot"></i> State of Goa, India
-        </div>
-      </div>
-
-      <ul class="nav-links">
-        <li><a href="/dashboard" class="<%= typeof title !== 'undefined' && title==='Dashboard'  ? 'active' : '' %>"><i
-              class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
-        <li><a href="/donors" class="<%= typeof title !== 'undefined' && title==='Donors'     ? 'active' : '' %>"><i
-              class="fa-solid fa-users"></i> Donors</a></li>
-        <li><a href="/inventory"
-            class="<%= typeof title !== 'undefined' && title==='Blood Inventory' ? 'active' : '' %>"><i
-              class="fa-solid fa-flask-vial"></i> Inventory</a></li>
-        <li><a href="/hospitals" class="<%= typeof title !== 'undefined' && title==='Hospitals'  ? 'active' : '' %>"><i
-              class="fa-solid fa-hospital"></i> Hospitals</a></li>
-        <li><a href="/donations"
-            class="<%= typeof title !== 'undefined' && title==='Record Donation' ? 'active' : '' %>"><i
-              class="fa-solid fa-hand-holding-droplet"></i> Donations</a></li>
-        <li><a href="/requests"
-            class="<%= typeof title !== 'undefined' && title==='Blood Requests' ? 'active' : '' %>"><i
-              class="fa-solid fa-clipboard-list"></i> Requests</a></li>
-        <li><a href="/reports"
-            class="<%= typeof title !== 'undefined' && title==='Reports & Analytics' ? 'active' : '' %>"><i
-              class="fa-solid fa-chart-bar"></i> Reports</a></li>
-      </ul>
-
-      <div class="sidebar-footer">
-        <% if (locals.admin) { %>
-          <div class="admin-info">
-            <div class="avatar">
-              <%= admin.fullName.charAt(0).toUpperCase() %>
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <span>Goa <strong>Blood Bank</strong></span>
             </div>
-            <div>
-              <div class="admin-name">
-                <%= admin.fullName %>
-              </div>
-              <div class="admin-role">
-                <%= admin.role %>
-              </div>
+            <div class="location-badge">
+                <i class="fa-solid fa-location-dot"></i> State of Goa, India
             </div>
-          </div>
-          <% } %>
+        </div>
+
+        <ul class="nav-links">
+            <li class="nav-section-label">Main</li>
+            <li><a href="/dashboard" class="<%= typeof title !== 'undefined' && title==='Dashboard' ? 'active' : '' %>">
+                <i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+            <li><a href="/donors" class="<%= typeof title !== 'undefined' && title==='Donors' ? 'active' : '' %>">
+                <i class="fa-solid fa-users"></i> Donors</a></li>
+            <li><a href="/inventory" class="<%= typeof title !== 'undefined' && title==='Blood Inventory' ? 'active' : '' %>">
+                <i class="fa-solid fa-flask-vial"></i> Inventory</a></li>
+
+            <li class="nav-section-label">Operations</li>
+            <li><a href="/hospitals" class="<%= typeof title !== 'undefined' && title==='Hospitals' ? 'active' : '' %>">
+                <i class="fa-solid fa-hospital"></i> Hospitals</a></li>
+            <li><a href="/donations" class="<%= typeof title !== 'undefined' && title==='Record Donation' ? 'active' : '' %>">
+                <i class="fa-solid fa-hand-holding-droplet"></i> Donations</a></li>
+            <li><a href="/requests" class="<%= typeof title !== 'undefined' && title==='Blood Requests' ? 'active' : '' %>">
+                <i class="fa-solid fa-clipboard-list"></i> Requests</a></li>
+
+            <li class="nav-section-label">Community</li>
+            <li><a href="/camps" class="<%= typeof title !== 'undefined' && title==='Donation Camps' ? 'active' : '' %>">
+                <i class="fa-solid fa-campground"></i> Camps & NGOs</a></li>
+
+            <li class="nav-section-label">Analytics</li>
+            <li><a href="/reports" class="<%= typeof title !== 'undefined' && title==='Reports & Analytics' ? 'active' : '' %>">
+                <i class="fa-solid fa-chart-bar"></i> Reports</a></li>
+
+            <% if (locals.admin && admin.role === 'Super Admin') { %>
+            <li class="nav-section-label">Administration</li>
+            <li><a href="/admin/users" class="<%= typeof title !== 'undefined' && title==='User Management' ? 'active' : '' %>">
+                <i class="fa-solid fa-users-gear"></i> User Management</a></li>
+            <li><a href="/admin/audit" class="<%= typeof title !== 'undefined' && title==='System Audit' ? 'active' : '' %>">
+                <i class="fa-solid fa-shield-halved"></i> System Audit</a></li>
+            <% } %>
+        </ul>
+
+        <div class="sidebar-footer">
+            <% if (locals.admin) { %>
+                <div class="admin-info">
+                    <div class="avatar"><%= admin.fullName.charAt(0).toUpperCase() %></div>
+                    <div>
+                        <div class="admin-name"><%= admin.fullName %></div>
+                        <div class="admin-role"><%= admin.role %></div>
+                    </div>
+                </div>
+            <% } %>
             <a href="/logout" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-      </div>
+        </div>
     </nav>
 
     <!-- Main Content -->
     <main class="main-content">
-      <header class="top-bar">
-        <h1 class="page-title">
-          <%= typeof title !=='undefined' ? title : '' %>
-        </h1>
-        <div class="top-bar-right">
-          <span class="time-badge"><i class="fa-regular fa-clock"></i> <span id="clock"></span></span>
-        </div>
-      </header>
+        <header class="top-bar">
+            <h1 class="page-title"><%= typeof title !=='undefined' ? title : '' %></h1>
+            <div class="top-bar-right">
+                <span class="time-badge"><i class="fa-regular fa-clock"></i> <span id="clock"></span></span>
+            </div>
+        </header>
 
-      <div class="content-wrapper">
-        <%- body %>
-      </div>
+        <div class="content-wrapper">
+            <%- body %>
+        </div>
     </main>
 
     <script>
-      // Live clock
-      const clock = document.getElementById('clock');
-      if (clock) {
-        const tick = () => { clock.textContent = new Date().toLocaleTimeString(); };
-        tick(); setInterval(tick, 1000);
-      }
+        // Live clock
+        const clock = document.getElementById('clock');
+        if (clock) {
+            const tick = () => { clock.textContent = new Date().toLocaleTimeString('en-IN'); };
+            tick(); setInterval(tick, 1000);
+        }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <%- typeof extraScripts !=='undefined' ? extraScripts : '' %>
-  </body>
-
-  </html>
+</body>
+</html>

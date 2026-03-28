@@ -1,5 +1,10 @@
+// ============================================================
+// routes/hospital-portal.js — Hospital Portal
+// Security hardened: validation, sanitization, whitelist
+// ============================================================
 import express from 'express';
 import pool from '../config/db.js';
+import { sanitizeBody, validateParamId } from '../middleware/security.js';
 
 const router = express.Router();
 
@@ -14,7 +19,6 @@ function requireHospital(req, res, next) {
 // GET /hospital-portal — hospital sees its own requests + raise new request form
 router.get('/', requireHospital, async (req, res) => {
     try {
-        // Find the hospital linked to this user account
         const [hospitals] = await pool.query(
             'SELECT * FROM hospital WHERE user_id = ?',
             [req.session.userId]
@@ -29,7 +33,6 @@ router.get('/', requireHospital, async (req, res) => {
         }
         const hospital = hospitals[0];
 
-        // All requests from this hospital
         const [requests] = await pool.query(`
             SELECT br.*, bg.group_name,
                    DATEDIFF(br.required_by_date, CURDATE()) AS days_left
@@ -44,12 +47,10 @@ router.get('/', requireHospital, async (req, res) => {
 
         res.render('hospital-portal/index', {
             title: 'Hospital Portal',
-            hospital,
-            requests,
-            blood_groups,
+            hospital, requests, blood_groups,
             admin: { fullName: req.session.fullName, role: req.session.role },
             success: req.query.success || null,
-            error: null
+            error: req.query.error || null
         });
     } catch (err) {
         console.error(err);
@@ -57,9 +58,25 @@ router.get('/', requireHospital, async (req, res) => {
     }
 });
 
-// POST /hospital-portal/request — raise a new blood request
-router.post('/request', requireHospital, async (req, res) => {
+// POST /hospital-portal/request — raise a new blood request (validated)
+router.post('/request', requireHospital, sanitizeBody, async (req, res) => {
     const { blood_group_id, units_required, urgency, required_by_date, purpose } = req.body;
+
+    // ── Input Validation ─────────────────────────────────────
+    if (!blood_group_id || isNaN(blood_group_id) || blood_group_id < 1 || blood_group_id > 8) {
+        return res.redirect('/hospital-portal?error=' + encodeURIComponent('Invalid blood group.'));
+    }
+    if (!units_required || isNaN(units_required) || parseFloat(units_required) < 0.5) {
+        return res.redirect('/hospital-portal?error=' + encodeURIComponent('Units must be at least 0.5.'));
+    }
+    const validUrgencies = ['Normal', 'Urgent', 'Critical'];
+    if (!urgency || !validUrgencies.includes(urgency)) {
+        return res.redirect('/hospital-portal?error=' + encodeURIComponent('Invalid urgency level.'));
+    }
+    if (required_by_date && new Date(required_by_date) < new Date()) {
+        return res.redirect('/hospital-portal?error=' + encodeURIComponent('Required-by date must be in the future.'));
+    }
+
     try {
         const [hospitals] = await pool.query(
             'SELECT hospital_id FROM hospital WHERE user_id = ?',
@@ -71,12 +88,13 @@ router.post('/request', requireHospital, async (req, res) => {
             INSERT INTO blood_request
               (hospital_id, blood_group_id, units_required, urgency, request_date, required_by_date, purpose)
             VALUES (?, ?, ?, ?, CURDATE(), ?, ?)
-        `, [hospitals[0].hospital_id, blood_group_id, units_required, urgency, required_by_date, purpose]);
+        `, [hospitals[0].hospital_id, parseInt(blood_group_id), parseFloat(units_required),
+            urgency, required_by_date || null, purpose || null]);
 
         res.redirect('/hospital-portal?success=Request+submitted+successfully');
     } catch (err) {
         console.error(err);
-        res.redirect('/hospital-portal?error=Failed+to+submit+request');
+        res.redirect('/hospital-portal?error=' + encodeURIComponent('Failed to submit request.'));
     }
 });
 

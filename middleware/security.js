@@ -1,0 +1,102 @@
+// ============================================================
+// middleware/security.js — Security middleware bundle
+// Helmet, Rate Limiting, CSRF, Input Sanitization
+// ============================================================
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
+// ── Helmet — Security Headers ────────────────────────────────
+export const helmetMiddleware = helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"]
+        }
+    },
+    crossOriginEmbedderPolicy: false
+});
+
+// ── Rate Limiters ────────────────────────────────────────────
+export const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,  // 15 minutes
+    max: 10,                    // 10 attempts per window
+    message: 'Too many login attempts. Please try again after 15 minutes.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+        res.status(429).render('auth/login', {
+            title: 'Login',
+            error: 'Too many login attempts. Please try again after 15 minutes.',
+            layout: false
+        });
+    }
+});
+
+export const signupLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,  // 1 hour
+    max: 5,                     // 5 signup attempts per hour
+    message: 'Too many signup attempts. Please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+export const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: 'Too many OTP requests. Please wait before retrying.',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+export const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// ── Input Sanitizer — strip dangerous HTML ───────────────────
+export function sanitizeBody(req, res, next) {
+    if (req.body && typeof req.body === 'object') {
+        for (const key of Object.keys(req.body)) {
+            if (typeof req.body[key] === 'string') {
+                // Strip HTML tags and trim
+                req.body[key] = req.body[key]
+                    .replace(/<[^>]*>/g, '')
+                    .trim();
+            }
+        }
+    }
+    next();
+}
+
+// ── Role Guard Factory ───────────────────────────────────────
+export function requireRole(...roles) {
+    return (req, res, next) => {
+        if (!req.session.userId) return res.redirect('/login');
+        if (!roles.includes(req.session.role)) {
+            return res.status(403).render('auth/login', {
+                title: 'Access Denied',
+                error: 'You do not have permission to access this resource.',
+                layout: false
+            });
+        }
+        next();
+    };
+}
+
+// ── Param Validator — ensures route :id is a positive integer ─
+export function validateParamId(paramName = 'id') {
+    return (req, res, next) => {
+        const val = req.params[paramName];
+        if (!val || !/^\d+$/.test(val) || parseInt(val) < 1) {
+            return res.status(400).send('Invalid parameter: ' + paramName);
+        }
+        req.params[paramName] = parseInt(val);
+        next();
+    };
+}

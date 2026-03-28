@@ -1,0 +1,6 @@
+1. create working auth pages(signup and login using OTP)
+2. add specific users(donor,hospitals)
+3. improve the UI(should represent the theme of blood)
+4. add sections for NGO and camps for donations
+5. add specific color to the specific blood group
+6. 

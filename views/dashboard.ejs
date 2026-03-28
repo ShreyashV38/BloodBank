@@ -1,100 +1,92 @@
-<%# views/dashboard.ejs %>
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon red"><i class="fa-solid fa-users"></i></div>
-            <div>
-                <div class="stat-val">
-                    <%= totalDonors %>
-                </div>
-                <div class="stat-label">Total Donors</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon amber"><i class="fa-solid fa-clipboard-list"></i></div>
-            <div>
-                <div class="stat-val">
-                    <%= pendingRequests %>
-                </div>
-                <div class="stat-label">Pending Requests</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon blue"><i class="fa-solid fa-flask-vial"></i></div>
-            <div>
-                <div class="stat-val">
-                    <%= bloodStock.reduce((s,r)=> s + Number(r.total_units), 0).toFixed(1) %>
-                </div>
-                <div class="stat-label">Total Units in Stock</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon green"><i class="fa-solid fa-hospital"></i></div>
-            <div>
-                <div class="stat-val">
-                    <%= bloodStock.length %>
-                </div>
-                <div class="stat-label">Blood Types Tracked</div>
-            </div>
+<%# views/dashboard.ejs — Blood-themed dashboard with color-coded blood groups %>
+<%
+function bloodClass(g) {
+    const m = {'A+':'bg-a-pos','A-':'bg-a-neg','B+':'bg-b-pos','B-':'bg-b-neg','AB+':'bg-ab-pos','AB-':'bg-ab-neg','O+':'bg-o-pos','O-':'bg-o-neg'};
+    return m[g] || '';
+}
+%>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fa-solid fa-users"></i></div>
+        <div>
+            <div class="stat-val"><%= totalDonors %></div>
+            <div class="stat-label">Total Donors</div>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon amber"><i class="fa-solid fa-clipboard-list"></i></div>
+        <div>
+            <div class="stat-val"><%= pendingRequests %></div>
+            <div class="stat-label">Pending Requests</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fa-solid fa-flask-vial"></i></div>
+        <div>
+            <div class="stat-val"><%= bloodStock.reduce((s,r) => s + Number(r.total_units), 0).toFixed(1) %></div>
+            <div class="stat-label">Total Units</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-hospital"></i></div>
+        <div>
+            <div class="stat-val"><%= totalHospitals %></div>
+            <div class="stat-label">Hospitals</div>
+        </div>
+    </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title"><i class="fa-solid fa-flask-vial"></i> Blood Stock Overview</span>
-            <a href="/inventory" class="btn btn-outline btn-sm">View Full Inventory</a>
-        </div>
-        <% bloodStock.forEach(row=> {
-            const units = Number(row.total_units);
-            const max = 30;
-            const pct = Math.min(100, (units / max * 100)).toFixed(0);
-            const cls = units <= 3 ? 'fill-critical' : units <=7 ? 'fill-low' : 'fill-good' ; %>
-                <div class="stock-bar-wrap">
-                    <div class="stock-bar-label">
-                        <span style="font-weight:600">
-                            <%= row.group_name %>
-                        </span>
-                        <span style="color:var(--text-muted)">
-                            <%= units %> units
-                                <% if (units <=3) { %><span class="badge badge-danger"
-                                        style="margin-left:6px">Critical</span>
-                                    <% } else if (units <=7) { %><span class="badge badge-warning"
-                                            style="margin-left:6px">Low</span>
-                                        <% } else { %><span class="badge badge-success"
-                                                style="margin-left:6px">Good</span>
-                                            <% } %>
-                        </span>
-                    </div>
-                    <div class="stock-bar">
-                        <div class="stock-bar-fill <%= cls %>" style="width:<%= pct %>%"></div>
-                    </div>
-                </div>
-                <% }); %>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-flask-vial"></i> Blood Stock Overview</span>
+        <a href="/inventory" class="btn btn-outline btn-sm">View Full Inventory</a>
     </div>
+    <% bloodStock.forEach(row => {
+        const units = Number(row.total_units);
+        const max = 30;
+        const pct = Math.min(100, (units / max * 100)).toFixed(0);
+        const cls = units <= 3 ? 'fill-critical' : units <= 7 ? 'fill-low' : 'fill-good';
+    %>
+    <div class="stock-bar-wrap">
+        <div class="stock-bar-label">
+            <span>
+                <span class="blood-badge <%= bloodClass(row.group_name) %>"><%= row.group_name %></span>
+            </span>
+            <span style="color:var(--text-muted)">
+                <%= units %> units
+                <% if (units <= 3) { %><span class="badge badge-danger" style="margin-left:6px">Critical</span>
+                <% } else if (units <= 7) { %><span class="badge badge-warning" style="margin-left:6px">Low</span>
+                <% } else { %><span class="badge badge-success" style="margin-left:6px">Good</span><% } %>
+            </span>
+        </div>
+        <div class="stock-bar">
+            <div class="stock-bar-fill <%= cls %>" style="width:<%= pct %>%"></div>
+        </div>
+    </div>
+    <% }); %>
+</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-        <div class="card" style="margin-bottom:0">
-            <div class="card-header"><span class="card-title">Quick Actions</span></div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-                <a href="/donations" class="btn btn-primary"><i class="fa-solid fa-hand-holding-droplet"></i> Record
-                    Donation</a>
-                <a href="/requests" class="btn btn-outline"><i class="fa-solid fa-clipboard-list"></i> View Requests</a>
-                <a href="/hospitals" class="btn btn-outline"><i class="fa-solid fa-hospital"></i> Manage Hospitals</a>
-                <a href="/reports" class="btn btn-outline"><i class="fa-solid fa-chart-bar"></i> View Reports</a>
-            </div>
-        </div>
-        <div class="card" style="margin-bottom:0">
-            <div class="card-header"><span class="card-title">Expiry Alerts</span></div>
-            <% const expiring=bloodStock.filter(r=> r.earliest_expiry && new Date(r.earliest_expiry) < new
-                    Date(Date.now() + 7*24*60*60*1000)); %>
-                    <% if (expiring.length===0) { %>
-                        <p style="color:var(--text-muted);font-size:.875rem">No stock expiring in the next 7 days. ✅</p>
-                        <% } else { expiring.forEach(r=> { %>
-                            <div class="alert alert-danger" style="margin-bottom:8px;">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                                <strong>
-                                    <%= r.group_name %>
-                                </strong> — expires <%= new Date(r.earliest_expiry).toDateString() %>
-                            </div>
-                            <% }); } %>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div class="card" style="margin-bottom:0">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-bolt"></i> Quick Actions</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="/donations" class="btn btn-primary"><i class="fa-solid fa-hand-holding-droplet"></i> Record Donation</a>
+            <a href="/requests" class="btn btn-outline"><i class="fa-solid fa-clipboard-list"></i> View Requests</a>
+            <a href="/camps" class="btn btn-outline"><i class="fa-solid fa-campground"></i> Donation Camps</a>
+            <a href="/reports" class="btn btn-outline"><i class="fa-solid fa-chart-bar"></i> View Reports</a>
         </div>
     </div>
+    <div class="card" style="margin-bottom:0">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> Expiry Alerts</span></div>
+        <% const expiring = bloodStock.filter(r => r.earliest_expiry && new Date(r.earliest_expiry) < new Date(Date.now() + 7*24*60*60*1000)); %>
+        <% if (expiring.length === 0) { %>
+            <p style="color:var(--text-muted);font-size:.875rem"><i class="fa-solid fa-check-circle" style="color:var(--success)"></i> No stock expiring in the next 7 days.</p>
+        <% } else { expiring.forEach(r => { %>
+            <div class="alert alert-danger" style="margin-bottom:8px;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span class="blood-badge <%= bloodClass(r.group_name) %>" style="margin-right:4px"><%= r.group_name %></span>
+                — expires <%= new Date(r.earliest_expiry).toDateString() %>
+            </div>
+        <% }); } %>
+    </div>
+</div>

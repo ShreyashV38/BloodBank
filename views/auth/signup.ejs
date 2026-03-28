@@ -1,0 +1,234 @@
+<%# views/auth/signup.ejs — Role-based signup with OTP %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up — Goa Blood Bank</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="login-page">
+        <div class="login-card" style="width:560px;">
+            <div class="login-logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>Create Account</h2>
+                <p>Join the Goa Blood Bank Network</p>
+            </div>
+
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+            <% } %>
+
+            <form method="POST" action="/signup" autocomplete="off" id="signupForm">
+                <!-- Role Selector -->
+                <div class="role-selector">
+                    <label class="role-option <%= (formData.role === 'Donor' ? 'selected' : '') %>" onclick="selectRole('Donor')">
+                        <input type="radio" name="role" value="Donor" <%= (formData.role === 'Donor' ? 'checked' : '') %> required />
+                        <i class="fa-solid fa-hand-holding-droplet"></i>
+                        <div class="role-label">Donor</div>
+                        <div class="role-desc">Donate blood & save lives</div>
+                    </label>
+                    <label class="role-option <%= (formData.role === 'Hospital' ? 'selected' : '') %>" onclick="selectRole('Hospital')">
+                        <input type="radio" name="role" value="Hospital" <%= (formData.role === 'Hospital' ? 'checked' : '') %> />
+                        <i class="fa-solid fa-hospital"></i>
+                        <div class="role-label">Hospital</div>
+                        <div class="role-desc">Request blood for patients</div>
+                    </label>
+                    <label class="role-option <%= (formData.role === 'NGO' ? 'selected' : '') %>" onclick="selectRole('NGO')">
+                        <input type="radio" name="role" value="NGO" <%= (formData.role === 'NGO' ? 'checked' : '') %> />
+                        <i class="fa-solid fa-people-group"></i>
+                        <div class="role-label">NGO</div>
+                        <div class="role-desc">Organize donation camps</div>
+                    </label>
+                </div>
+
+                <!-- Common Fields -->
+                <div class="form-grid" style="margin-bottom:16px;">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" name="full_name" required placeholder="Your full name"
+                               value="<%= formData.full_name || '' %>" />
+                    </div>
+                    <div class="form-group">
+                        <label>Username *</label>
+                        <input type="text" name="username" required placeholder="Choose a username" minlength="3" maxlength="50"
+                               pattern="^[a-zA-Z0-9._]+$" title="Letters, numbers, dots, underscores only"
+                               value="<%= formData.username || '' %>" />
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" name="email" required placeholder="your@email.com"
+                               value="<%= formData.email || '' %>" />
+                    </div>
+                    <div class="form-group">
+                        <label>Phone *</label>
+                        <input type="tel" name="phone" required placeholder="10-digit mobile number"
+                               pattern="[6-9]\d{9}" title="Valid 10-digit Indian mobile number"
+                               maxlength="10" value="<%= formData.phone || '' %>" />
+                    </div>
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" name="password" id="signupPassword" required
+                               placeholder="Min 8 chars, uppercase, digit, special" minlength="8"
+                               oninput="checkPasswordStrength(this.value)" />
+                        <div class="password-strength" id="pwStrength">
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password *</label>
+                        <input type="password" name="confirm_password" required placeholder="Re-enter password" minlength="8" />
+                    </div>
+                </div>
+
+                <!-- Donor-specific fields -->
+                <div class="role-fields" id="donor-fields">
+                    <h4 style="color:var(--blood-light);margin-bottom:12px;font-size:.9rem;">
+                        <i class="fa-solid fa-hand-holding-droplet"></i> Donor Details
+                    </h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>First Name *</label>
+                            <input type="text" name="first_name" placeholder="First name"
+                                   value="<%= formData.first_name || '' %>" />
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name *</label>
+                            <input type="text" name="last_name" placeholder="Last name"
+                                   value="<%= formData.last_name || '' %>" />
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth *</label>
+                            <input type="date" name="date_of_birth" value="<%= formData.date_of_birth || '' %>" />
+                        </div>
+                        <div class="form-group">
+                            <label>Gender *</label>
+                            <select name="gender">
+                                <option value="Male" <%= formData.gender === 'Male' ? 'selected' : '' %>>Male</option>
+                                <option value="Female" <%= formData.gender === 'Female' ? 'selected' : '' %>>Female</option>
+                                <option value="Other" <%= formData.gender === 'Other' ? 'selected' : '' %>>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Blood Group *</label>
+                            <select name="blood_group_id">
+                                <option value="">— Select —</option>
+                                <option value="1" <%= formData.blood_group_id == '1' ? 'selected' : '' %>>A+</option>
+                                <option value="2" <%= formData.blood_group_id == '2' ? 'selected' : '' %>>A-</option>
+                                <option value="3" <%= formData.blood_group_id == '3' ? 'selected' : '' %>>B+</option>
+                                <option value="4" <%= formData.blood_group_id == '4' ? 'selected' : '' %>>B-</option>
+                                <option value="5" <%= formData.blood_group_id == '5' ? 'selected' : '' %>>AB+</option>
+                                <option value="6" <%= formData.blood_group_id == '6' ? 'selected' : '' %>>AB-</option>
+                                <option value="7" <%= formData.blood_group_id == '7' ? 'selected' : '' %>>O+</option>
+                                <option value="8" <%= formData.blood_group_id == '8' ? 'selected' : '' %>>O-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" name="address" placeholder="City, Goa"
+                                   value="<%= formData.address || '' %>" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hospital-specific fields -->
+                <div class="role-fields" id="hospital-fields">
+                    <h4 style="color:var(--blood-light);margin-bottom:12px;font-size:.9rem;">
+                        <i class="fa-solid fa-hospital"></i> Hospital Details
+                    </h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Hospital Name *</label>
+                            <input type="text" name="hospital_name" placeholder="Hospital name"
+                                   value="<%= formData.hospital_name || '' %>" />
+                        </div>
+                        <div class="form-group">
+                            <label>City *</label>
+                            <select name="city">
+                                <option value="">— Select City —</option>
+                                <option value="Panaji">Panaji (North Goa)</option>
+                                <option value="Margao">Margao (South Goa)</option>
+                                <option value="Vasco">Vasco da Gama</option>
+                                <option value="Mapusa">Mapusa</option>
+                                <option value="Ponda">Ponda</option>
+                                <option value="Calangute">Calangute</option>
+                                <option value="Bicholim">Bicholim</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NGO-specific fields -->
+                <div class="role-fields" id="ngo-fields">
+                    <h4 style="color:var(--blood-light);margin-bottom:12px;font-size:.9rem;">
+                        <i class="fa-solid fa-people-group"></i> NGO Details
+                    </h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>NGO Name *</label>
+                            <input type="text" name="ngo_name" placeholder="Organization name"
+                                   value="<%= formData.ngo_name || '' %>" />
+                        </div>
+                        <div class="form-group">
+                            <label>Registration Number *</label>
+                            <input type="text" name="registration_number" placeholder="E.g., GDA/2024/001"
+                                   value="<%= formData.registration_number || '' %>" />
+                        </div>
+                        <div class="form-group">
+                            <label>Focus Area *</label>
+                            <select name="focus_area">
+                                <option value="">— Select —</option>
+                                <option value="Blood Donation">Blood Donation</option>
+                                <option value="Healthcare">Healthcare</option>
+                                <option value="Community Welfare">Community Welfare</option>
+                                <option value="Youth Development">Youth Development</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;margin-top:20px;">
+                    <i class="fa-solid fa-user-plus"></i> Create Account & Verify OTP
+                </button>
+
+                <div class="login-links" style="margin-top:16px;justify-content:center;">
+                    <a href="/login"><i class="fa-solid fa-arrow-left"></i> Already have an account? Sign In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function selectRole(role) {
+            document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            document.querySelectorAll('.role-fields').forEach(el => el.classList.remove('active'));
+            const fields = document.getElementById(role.toLowerCase() + '-fields');
+            if (fields) fields.classList.add('active');
+        }
+
+        function checkPasswordStrength(pw) {
+            const el = document.getElementById('pwStrength');
+            let score = 0;
+            if (pw.length >= 8) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[!@#$%^&*(),.?":{}|<>]/.test(pw)) score++;
+            el.className = 'password-strength ' +
+                (score <= 1 ? 'weak' : score === 2 ? 'medium' : score === 3 ? 'strong' : 'very-strong');
+        }
+
+        // Show fields for pre-selected role
+        const checkedRole = document.querySelector('input[name="role"]:checked');
+        if (checkedRole) {
+            const fields = document.getElementById(checkedRole.value.toLowerCase() + '-fields');
+            if (fields) fields.classList.add('active');
+        }
+    </script>
+</body>
+</html>
