@@ -109,7 +109,7 @@ router.get('/audit', async (req, res) => {
             SELECT 'Donation' AS type, don.donation_date AS date,
                    CONCAT(d.first_name, ' ', d.last_name) AS actor, don.status AS detail
             FROM donation don JOIN donor d ON don.donor_id = d.donor_id
-            ORDER BY don.created_at DESC LIMIT 10
+            ORDER BY don.donation_date DESC LIMIT 10
         `);
         const [recentRequests] = await db.query(`
             SELECT 'Request' AS type, br.request_date AS date,
@@ -117,7 +117,7 @@ router.get('/audit', async (req, res) => {
             FROM blood_request br
             JOIN hospital h ON br.hospital_id = h.hospital_id
             JOIN blood_group bg ON br.blood_group_id = bg.blood_group_id
-            ORDER BY br.created_at DESC LIMIT 10
+            ORDER BY br.request_date DESC LIMIT 10
         `);
         const [recentLogins] = await db.query(`
             SELECT user_id, username, full_name, role, 
