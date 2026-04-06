@@ -92,7 +92,7 @@ body {
 /* ── SIDEBAR ──────────────────────────────────────────────── */
 .sidebar {
   width: 260px;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--sidebar-bg);
   border-right: 1px solid rgba(183, 28, 28, 0.2);
   display: flex;
@@ -101,7 +101,6 @@ body {
   top: 0;
   left: 0;
   z-index: 100;
-  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -146,6 +145,7 @@ body {
   padding: 12px 0;
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .nav-section-label {
@@ -988,7 +988,7 @@ tbody tr:hover { background: var(--bg-elevated); }
 .portal-sidebar .logo p { font-size: .72rem; color: rgba(255, 255, 255, 0.45); }
 .portal-sidebar .logo i { font-size: 1.6rem; color: var(--blood-light); animation: pulse-blood 2s ease-in-out infinite; }
 
-.portal-nav { padding: 16px 0; flex: 1; }
+.portal-nav { padding: 16px 0; flex: 1; overflow-y: auto; min-height: 0; }
 
 .portal-nav a {
   display: flex;
@@ -1725,6 +1725,43 @@ tbody tr:hover { background: var(--bg-elevated); }
   background: rgba(255,255,255,0.08);
   margin: 8px 22px;
 }
+
+/* ── SIGNUP FORM UI ────────────────────────────────────────── */
+.role-fields {
+  display: none;
+  animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 12px;
+  background: rgba(0,0,0,0.15);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 20px;
+}
+
+.role-fields.active {
+  display: block;
+}
+
+.password-strength {
+  display: flex;
+  gap: 6px;
+  height: 6px;
+  margin-top: 8px;
+}
+
+.password-strength .bar {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.password-strength.weak .bar:nth-child(1) { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.password-strength.medium .bar:nth-child(1),
+.password-strength.medium .bar:nth-child(2) { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+.password-strength.strong .bar:nth-child(1),
+.password-strength.strong .bar:nth-child(2),
+.password-strength.strong .bar:nth-child(3) { background: var(--info); box-shadow: 0 0 8px var(--info); }
+.password-strength.very-strong .bar { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
 /* ── RESPONSIVE OVERRIDES ────────────────────────────────── */
 @media (max-width: 768px) {

@@ -37,7 +37,7 @@
 
             <div class="alert alert-info" style="font-size:.8rem;">
                 <i class="fa-solid fa-info-circle"></i>
-                OTP sent to <strong><%= email %></strong>. Check your email inbox (or server console).
+                OTP sent to <strong><%= email %></strong>. Please check your email inbox.
             </div>
 
             <% if (error) { %>
@@ -46,8 +46,7 @@
 
             <form method="POST" action="/verify-<%= purpose === 'login' ? 'login' : purpose === 'signup' ? 'signup' : 'reset' %>-otp"
                   id="otpForm">
-                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                <div class="otp-container">
+                                <div class="otp-container">
                     <input type="text" class="otp-input" maxlength="1" data-index="0" autofocus inputmode="numeric" />
                     <input type="text" class="otp-input" maxlength="1" data-index="1" inputmode="numeric" />
                     <input type="text" class="otp-input" maxlength="1" data-index="2" inputmode="numeric" />
@@ -68,8 +67,7 @@
             </form>
 
             <form method="POST" action="/resend-otp" style="margin-top:16px;">
-                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                <input type="hidden" name="purpose" value="<%= purpose %>" />
+                                <input type="hidden" name="purpose" value="<%= purpose %>" />
                 <button type="submit" class="btn btn-outline" style="width:100%;justify-content:center;" id="resendBtn">
                     <i class="fa-solid fa-arrow-rotate-right"></i> Resend OTP
                 </button>

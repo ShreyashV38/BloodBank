@@ -5,7 +5,7 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
-import { doubleCsrf } from 'csrf-csrf';
+
 
 // ── Helmet — Security Headers ────────────────────────────────
 export const helmetMiddleware = helmet({
@@ -22,22 +22,7 @@ export const helmetMiddleware = helmet({
     crossOriginEmbedderPolicy: false
 });
 
-// ── CSRF Protection ──────────────────────────────────────────
-const csrfSecret = process.env.CSRF_SECRET || 'bloodbank_csrf_dev_secret_key';
-
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
-    getSecret: () => csrfSecret,
-    cookieName: '__csrf',
-    cookieOptions: {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/'
-    },
-    getTokenFromRequest: (req) => req.body?._csrf || req.headers['x-csrf-token']
-});
-
-export { generateToken, doubleCsrfProtection };
+export {};
 
 // ── Rate Limiters ────────────────────────────────────────────
 export const loginLimiter = rateLimit({

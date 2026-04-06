@@ -1,7 +1,7 @@
 // Role selector toggle
-function selectRole(role) {
+function selectRole(role, e) {
     document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
+    if (e && e.currentTarget) e.currentTarget.classList.add('selected');
     document.querySelectorAll('.role-fields').forEach(el => el.classList.remove('active'));
     const fields = document.getElementById(role.toLowerCase() + '-fields');
     if (fields) fields.classList.add('active');

@@ -14,12 +14,11 @@ CREATE TABLE IF NOT EXISTS audit_log (
     details     TEXT,
     ip_address  VARCHAR(45),
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES system_user(user_id) ON DELETE SET NULL
+    CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES system_user(user_id) ON DELETE SET NULL,
+    INDEX idx_audit_user (user_id),
+    INDEX idx_audit_action (action),
+    INDEX idx_audit_created (created_at)
 );
-
-CREATE INDEX IF NOT EXISTS idx_audit_user    ON audit_log(user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_log(action);
-CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
 
 -- Widen time_slot column to fit longer values like "Morning (9-12)"
 ALTER TABLE appointment MODIFY COLUMN time_slot VARCHAR(30);

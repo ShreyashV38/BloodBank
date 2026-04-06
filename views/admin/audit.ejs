@@ -122,8 +122,7 @@
                     </td>
                     <td>
                         <form method="POST" action="/admin/users/unlock/<%= u.user_id %>" style="display:inline">
-                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                            <button class="btn btn-warning btn-sm"><i class="fa-solid fa-lock-open"></i> Unlock</button>
+                                                        <button class="btn btn-warning btn-sm"><i class="fa-solid fa-lock-open"></i> Unlock</button>
                         </form>
                     </td>
                 </tr>

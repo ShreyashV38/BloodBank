@@ -21,6 +21,7 @@
             <nav class="portal-nav">
                 <a href="/ngo-portal" class="active"><i class="fa-solid fa-campground"></i> My Camps</a>
                 <div class="nav-divider"></div>
+                <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
                 <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
             </nav>
             <div class="portal-footer">
@@ -78,8 +79,7 @@
                         <span class="card-title"><i class="fa-solid fa-plus"></i> Organize New Camp</span>
                     </div>
                     <form method="POST" action="/ngo-portal/camp">
-                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                        <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> Camp Details</div>
+                                                <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> Camp Details</div>
                         <div class="form-grid" style="padding:0 20px 10px;">
                             <div class="form-group">
                                 <label>Camp Name *</label>

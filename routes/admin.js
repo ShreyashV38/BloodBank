@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import db from '../config/db.js';
 import { requireRole, sanitizeBody, validateParamId } from '../middleware/security.js';
 import { logAction, getClientIP } from '../utils/audit.js';
+import { exec } from 'child_process';
 
 const router = express.Router();
 
@@ -153,6 +154,43 @@ router.get('/audit', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send('Server error');
+    }
+});
+
+// GET /admin/backup — DB Backup for Super Admin
+router.get('/backup', async (req, res) => {
+    try {
+        const filename = `blood_bank_backup_${Date.now()}.sql`;
+        const host = process.env.DB_HOST || 'localhost';
+        const user = process.env.DB_USER || 'root';
+        const pass = process.env.DB_PASSWORD || '';
+        const dbName = process.env.DB_NAME || 'blood_bank_db';
+
+        const command = `mysqldump -h ${host} -u ${user} ${pass ? `-p${pass}` : ''} ${dbName}`;
+
+        res.setHeader('Content-Type', 'application/sql');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+        const child = exec(command);
+        
+        child.stdout.pipe(res);
+        
+        child.stderr.on('data', data => {
+            // Log real errors via stdout, ignore mysqldump warnings for using password in CLI
+            if (!data.includes('Using a password')) {
+                console.error('Backup stderr:', data);
+            }
+        });
+
+        child.on('close', async (code) => {
+            if (code === 0) {
+                await logAction(req.session.userId, 'DB_BACKUP_GENERATED', 'SYSTEM', null, 'Super Admin downloaded DB backup', getClientIP(req));
+            }
+        });
+
+    } catch (err) {
+        console.error('Backup error:', err);
+        res.status(500).send('Unable to generate database backup');
     }
 });
 

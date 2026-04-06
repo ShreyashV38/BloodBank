@@ -11,8 +11,7 @@ import db from './config/db.js';
 
 // ── Security Middleware ──────────────────────────────────────
 import {
-    helmetMiddleware, generalLimiter, sanitizeBody, requireRole,
-    generateToken, doubleCsrfProtection
+    helmetMiddleware, generalLimiter, sanitizeBody, requireRole
 } from './middleware/security.js';
 
 // ── Route Imports ────────────────────────────────────────────
@@ -23,6 +22,7 @@ import donationsRouter from './routes/donations.js';
 import requestsRouter from './routes/requests.js';
 import reportsRouter from './routes/reports.js';
 import authRouter from './routes/auth.js';
+import profileRouter from './routes/profile.js';
 import hospitalPortalRouter from './routes/hospital-portal.js';
 import donorPortalRouter from './routes/donor-portal.js';
 import ngoPortalRouter from './routes/ngo-portal.js';
@@ -92,23 +92,7 @@ app.use(session({
     name: 'bbsid'
 }));
 
-// ── CSRF Protection ──────────────────────────────────────────
-// Skip CSRF for GET/HEAD/OPTIONS and static files
-app.use((req, res, next) => {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-    if (req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/images/')) return next();
-    doubleCsrfProtection(req, res, next);
-});
 
-// ── Make CSRF token available to all views ────────────────────
-app.use((req, res, next) => {
-    try {
-        res.locals.csrfToken = generateToken(req, res);
-    } catch {
-        res.locals.csrfToken = '';
-    }
-    next();
-});
 
 // ── Auth Guard ───────────────────────────────────────────────
 const PUBLIC_PATHS = ['/login', '/logout', '/signup', '/forgot-password',
@@ -139,8 +123,8 @@ app.use((req, res, next) => {
         return next();
     }
 
-    // Allow authenticated users to change their password
-    if (reqPath === '/change-password') return next();
+    // Allow authenticated users to change their password or edit their profile
+    if (reqPath === '/change-password' || reqPath.startsWith('/profile')) return next();
 
     if (role === 'Hospital' && (reqPath.startsWith('/hospital-portal') || reqPath === '/logout')) return next();
     if (role === 'Donor' && (reqPath.startsWith('/donor-portal') || reqPath === '/logout')) return next();
@@ -155,6 +139,7 @@ app.use((req, res, next) => {
 
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', authRouter);
+app.use('/profile', profileRouter);
 app.use('/donors', donorsRouter);
 app.use('/inventory', inventoryRouter);
 app.use('/hospitals', hospitalsRouter);

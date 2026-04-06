@@ -27,6 +27,7 @@ function bloodClass(g) {
             <nav class="portal-nav">
                 <a href="/donor-portal" class="active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
                 <div class="nav-divider"></div>
+                <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
                 <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
             </nav>
             <div class="portal-footer">
@@ -147,8 +148,7 @@ function bloodClass(g) {
                         <span class="card-title"><i class="fa-solid fa-calendar-plus"></i> Book Appointment</span>
                     </div>
                     <form method="POST" action="/donor-portal/book-appointment">
-                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                        <div class="form-grid">
+                                                <div class="form-grid">
                             <div class="form-group">
                                 <label>Date *</label>
                                 <input type="date" name="scheduled_date" required />
@@ -202,8 +202,7 @@ function bloodClass(g) {
                                     <td>
                                         <form method="POST" action="/donor-portal/cancel-appointment/<%= a.appointment_id %>"
                                               style="display:inline" onsubmit="return confirm('Cancel this appointment?')">
-                                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                                            <button class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                                                                        <button class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Cancel</button>
                                         </form>
                                     </td>
                                 </tr>

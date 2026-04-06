@@ -32,23 +32,22 @@
             <% } %>
 
             <form method="POST" action="/signup" autocomplete="off" id="signupForm">
-                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-
+                
                 <!-- Role Selector -->
                 <div class="role-selector">
-                    <label class="role-option <%= (formData.role === 'Donor' ? 'selected' : '') %>" onclick="selectRole('Donor')">
+                    <label class="role-option <%= (formData.role === 'Donor' ? 'selected' : '') %>" onclick="selectRole('Donor', event)">
                         <input type="radio" name="role" value="Donor" <%= (formData.role === 'Donor' ? 'checked' : '') %> required />
                         <i class="fa-solid fa-hand-holding-droplet"></i>
                         <div class="role-label">Donor</div>
                         <div class="role-desc">Donate blood & save lives</div>
                     </label>
-                    <label class="role-option <%= (formData.role === 'Hospital' ? 'selected' : '') %>" onclick="selectRole('Hospital')">
+                    <label class="role-option <%= (formData.role === 'Hospital' ? 'selected' : '') %>" onclick="selectRole('Hospital', event)">
                         <input type="radio" name="role" value="Hospital" <%= (formData.role === 'Hospital' ? 'checked' : '') %> />
                         <i class="fa-solid fa-hospital"></i>
                         <div class="role-label">Hospital</div>
                         <div class="role-desc">Request blood for patients</div>
                     </label>
-                    <label class="role-option <%= (formData.role === 'NGO' ? 'selected' : '') %>" onclick="selectRole('NGO')">
+                    <label class="role-option <%= (formData.role === 'NGO' ? 'selected' : '') %>" onclick="selectRole('NGO', event)">
                         <input type="radio" name="role" value="NGO" <%= (formData.role === 'NGO' ? 'checked' : '') %> />
                         <i class="fa-solid fa-people-group"></i>
                         <div class="role-label">NGO</div>

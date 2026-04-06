@@ -21,6 +21,7 @@
             <nav class="portal-nav">
                 <a href="/hospital-portal" class="active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
                 <div class="nav-divider"></div>
+                <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
                 <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
             </nav>
             <div class="portal-footer">
@@ -86,8 +87,7 @@
                         <span class="card-title"><i class="fa-solid fa-plus-circle"></i> Raise Blood Request</span>
                     </div>
                     <form method="POST" action="/hospital-portal/request">
-                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
-                        <div class="form-grid">
+                                                <div class="form-grid">
                             <div class="form-group">
                                 <label><i class="fa-solid fa-droplet"></i> Blood Group *</label>
                                 <select name="blood_group_id" required>
