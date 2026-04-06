@@ -1,14 +1,13 @@
 // ============================================================
-// routes/hospital-portal.js — Hospital Portal
-// Security hardened: validation, sanitization, whitelist
+// routes/hospital-portal.js — Hospital Portal + Email Alerts
 // ============================================================
 import express from 'express';
 import pool from '../config/db.js';
 import { sanitizeBody, validateParamId } from '../middleware/security.js';
+import { sendRequestNotification } from '../utils/mailer.js';
 
 const router = express.Router();
 
-// Middleware — only Hospital role can access
 function requireHospital(req, res, next) {
     if (!req.session.userId || req.session.role !== 'Hospital') {
         return res.redirect('/login');
@@ -19,16 +18,14 @@ function requireHospital(req, res, next) {
 // GET /hospital-portal — hospital sees its own requests + raise new request form
 router.get('/', requireHospital, async (req, res) => {
     try {
-        const [hospitals] = await pool.query(
-            'SELECT * FROM hospital WHERE user_id = ?',
-            [req.session.userId]
-        );
+        const [hospitals] = await pool.query('SELECT * FROM hospital WHERE user_id = ?', [req.session.userId]);
         if (!hospitals.length) {
             return res.render('hospital-portal/index', {
                 title: 'Hospital Portal', hospital: null,
                 requests: [], blood_groups: [],
                 admin: { fullName: req.session.fullName, role: req.session.role },
-                success: null, error: 'No hospital linked to this account.'
+                success: null, error: 'No hospital linked to this account.',
+                layout: false
             });
         }
         const hospital = hospitals[0];
@@ -50,7 +47,8 @@ router.get('/', requireHospital, async (req, res) => {
             hospital, requests, blood_groups,
             admin: { fullName: req.session.fullName, role: req.session.role },
             success: req.query.success || null,
-            error: req.query.error || null
+            error: req.query.error || null,
+            layout: false
         });
     } catch (err) {
         console.error(err);
@@ -58,11 +56,10 @@ router.get('/', requireHospital, async (req, res) => {
     }
 });
 
-// POST /hospital-portal/request — raise a new blood request (validated)
+// POST /hospital-portal/request — raise a new blood request
 router.post('/request', requireHospital, sanitizeBody, async (req, res) => {
     const { blood_group_id, units_required, urgency, required_by_date, purpose } = req.body;
 
-    // ── Input Validation ─────────────────────────────────────
     if (!blood_group_id || isNaN(blood_group_id) || blood_group_id < 1 || blood_group_id > 8) {
         return res.redirect('/hospital-portal?error=' + encodeURIComponent('Invalid blood group.'));
     }
@@ -78,18 +75,25 @@ router.post('/request', requireHospital, sanitizeBody, async (req, res) => {
     }
 
     try {
-        const [hospitals] = await pool.query(
-            'SELECT hospital_id FROM hospital WHERE user_id = ?',
-            [req.session.userId]
-        );
+        const [hospitals] = await pool.query('SELECT hospital_id, name, email FROM hospital WHERE user_id = ?', [req.session.userId]);
         if (!hospitals.length) return res.redirect('/hospital-portal');
+
+        const hospital = hospitals[0];
+        const [[bg]] = await pool.query('SELECT group_name FROM blood_group WHERE blood_group_id = ?', [parseInt(blood_group_id)]);
 
         await pool.query(`
             INSERT INTO blood_request
               (hospital_id, blood_group_id, units_required, urgency, request_date, required_by_date, purpose)
             VALUES (?, ?, ?, ?, CURDATE(), ?, ?)
-        `, [hospitals[0].hospital_id, parseInt(blood_group_id), parseFloat(units_required),
+        `, [hospital.hospital_id, parseInt(blood_group_id), parseFloat(units_required),
             urgency, required_by_date || null, purpose || null]);
+
+        // Send confirmation email
+        if (hospital.email) {
+            sendRequestNotification(hospital.email, hospital.name, {
+                action: 'created', bloodGroup: bg?.group_name, units: units_required, urgency, purpose
+            }).catch(err => console.error('Email error:', err.message));
+        }
 
         res.redirect('/hospital-portal?success=Request+submitted+successfully');
     } catch (err) {

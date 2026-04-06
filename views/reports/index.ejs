@@ -87,85 +87,15 @@
         </div>
     </div>
 
-    <script>
-        // ── Blood Stock Bar Chart ────────────────────────────────────
-        const stockLabels = <% - JSON.stringify(bloodStock.map(r => r.group_name)) %>;
-        const stockData = <% - JSON.stringify(bloodStock.map(r => Number(r.total_units))) %>;
-        const stockColors = stockData.map(u => u <= 3 ? '#dc2626' : u <= 7 ? '#d97706' : '#16a34a');
-
-        new Chart(document.getElementById('stockChart'), {
-            type: 'bar',
-            data: {
-                labels: stockLabels,
-                datasets: [{
-                    label: 'Units Available',
-                    data: stockData,
-                    backgroundColor: stockColors,
-                    borderRadius: 8,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }, tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${ctx.parsed.y} unit(s)`
-                        }
-                    }
-                },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.08)' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-
-        // ── Request Status Doughnut ──────────────────────────────────
-        const reqLabels = <% - JSON.stringify(requestStats.map(r => r.status)) %>;
-        const reqData = <% - JSON.stringify(requestStats.map(r => Number(r.count))) %>;
-        const reqColors = reqLabels.map(s =>
-            s === 'Fulfilled' ? '#16a34a' : s === 'Rejected' ? '#dc2626' :
-                s === 'Pending' ? '#d97706' : '#2563eb'
-        );
-
-        new Chart(document.getElementById('requestChart'), {
-            type: 'doughnut',
-            data: {
-                labels: reqLabels,
-                datasets: [{ data: reqData, backgroundColor: reqColors, borderWidth: 3, borderColor: '#1a1a2e' }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-
-        // ── Donation Units Line Chart ────────────────────────────────
-        const donLabels = <% - JSON.stringify(donationStats.map(r => r.group_name)) %>;
-        const donData = <% - JSON.stringify(donationStats.map(r => Number(r.total_units || 0))) %>;
-
-        new Chart(document.getElementById('donationChart'), {
-            type: 'line',
-            data: {
-                labels: donLabels,
-                datasets: [{
-                    label: 'Units Donated (Approved)',
-                    data: donData,
-                    borderColor: '#c0392b',
-                    backgroundColor: 'rgba(192,57,43,.15)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#c0392b',
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.08)' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
+    <!-- Chart data passed as JSON for external script -->
+    <script type="application/json" id="chartData">
+        {
+            "stockLabels": <%- JSON.stringify(bloodStock.map(r => r.group_name)) %>,
+            "stockData": <%- JSON.stringify(bloodStock.map(r => Number(r.total_units))) %>,
+            "reqLabels": <%- JSON.stringify(requestStats.map(r => r.status)) %>,
+            "reqData": <%- JSON.stringify(requestStats.map(r => Number(r.count))) %>,
+            "donLabels": <%- JSON.stringify(donationStats.map(r => r.group_name)) %>,
+            "donData": <%- JSON.stringify(donationStats.map(r => Number(r.total_units || 0))) %>
+        }
     </script>
+    <script src="/js/reports.js"></script>

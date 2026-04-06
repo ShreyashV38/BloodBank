@@ -1,11 +1,11 @@
 // ============================================================
-// routes/auth.js — Full Auth (Login + Signup + OTP + Forgot Password)
-// Industry-grade with account lockout, OTP verification, RBAC
+// routes/auth.js — Full Auth with Email OTP, Audit Logging, CSRF
 // ============================================================
 import express from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../config/db.js';
 import { generateOTP, verifyOTP, getOTPTimeRemaining } from '../utils/otp.js';
+import { logAction, getClientIP } from '../utils/audit.js';
 import { loginLimiter, signupLimiter, otpLimiter } from '../middleware/security.js';
 import {
     validateLogin, validateSignup, validateOTP,
@@ -32,19 +32,17 @@ router.post('/login', loginLimiter, validateLogin, async (req, res) => {
 
     const { username, password } = req.body;
     try {
-        const [rows] = await pool.query(
-            'SELECT * FROM system_user WHERE username = ?',
-            [username]
-        );
+        const [rows] = await pool.query('SELECT * FROM system_user WHERE username = ?', [username]);
         if (!rows.length) {
+            await logAction(null, 'LOGIN_FAILED', 'system_user', null, `Unknown username: ${username}`, getClientIP(req));
             return res.render('auth/login', { title: 'Login', error: 'Invalid username or password.', success: null, layout: false });
         }
 
         const user = rows[0];
 
-        // Check if account is locked
         if (user.locked_until && new Date(user.locked_until) > new Date()) {
             const minsLeft = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+            await logAction(user.user_id, 'LOGIN_LOCKED', 'system_user', user.user_id, `Account locked`, getClientIP(req));
             return res.render('auth/login', {
                 title: 'Login',
                 error: `Account locked due to too many failed attempts. Try again in ${minsLeft} minute(s).`,
@@ -52,41 +50,40 @@ router.post('/login', loginLimiter, validateLogin, async (req, res) => {
             });
         }
 
-        // Check if account is active
         if (!user.is_active) {
             return res.render('auth/login', { title: 'Login', error: 'Account has been deactivated. Contact admin.', success: null, layout: false });
         }
 
         const valid = await bcrypt.compare(password, user.password_hash);
         if (!valid) {
-            // Increment failed count
-            const newCount = (user.failed_login_count || 0) + 1;
-            const lockUntil = newCount >= MAX_FAILED_LOGINS
-                ? new Date(Date.now() + LOCKOUT_MINUTES * 60000)
-                : null;
+            await pool.query(`
+                UPDATE system_user 
+                SET failed_login_count = failed_login_count + 1,
+                    locked_until = CASE 
+                        WHEN failed_login_count + 1 >= ? THEN DATE_ADD(NOW(), INTERVAL ? MINUTE) 
+                        ELSE NULL 
+                    END
+                WHERE user_id = ?
+            `, [MAX_FAILED_LOGINS, LOCKOUT_MINUTES, user.user_id]);
 
-            await pool.query(
-                'UPDATE system_user SET failed_login_count = ?, locked_until = ? WHERE user_id = ?',
-                [newCount, lockUntil, user.user_id]
-            );
-
-            const remaining = MAX_FAILED_LOGINS - newCount;
+            const [[updatedUser]] = await pool.query('SELECT failed_login_count FROM system_user WHERE user_id = ?', [user.user_id]);
+            const remaining = MAX_FAILED_LOGINS - updatedUser.failed_login_count;
             const msg = remaining > 0
                 ? `Invalid password. ${remaining} attempt(s) remaining before lockout.`
                 : `Account locked for ${LOCKOUT_MINUTES} minutes due to too many failed attempts.`;
 
+            await logAction(user.user_id, 'LOGIN_FAILED', 'system_user', user.user_id, msg, getClientIP(req));
             return res.render('auth/login', { title: 'Login', error: msg, success: null, layout: false });
         }
 
         // Credentials valid — send OTP
         const otpKey = `login:${user.user_id}`;
         try {
-            generateOTP(otpKey);
+            generateOTP(otpKey, user.email, 'login');
         } catch (e) {
             return res.render('auth/login', { title: 'Login', error: e.message, success: null, layout: false });
         }
 
-        // Store pending login in session
         req.session.pendingLogin = {
             userId: user.user_id,
             username: user.username,
@@ -138,32 +135,39 @@ router.post('/verify-login-otp', otpLimiter, validateOTP, async (req, res) => {
         });
     }
 
-    // OTP valid — create session
-    req.session.userId = pending.userId;
-    req.session.username = pending.username;
-    req.session.fullName = pending.fullName;
-    req.session.role = pending.role;
-    delete req.session.pendingLogin;
+    req.session.regenerate((err) => {
+        if (err) {
+            console.error('Session regeneration error:', err);
+            return res.status(500).send('Server error during login.');
+        }
 
-    if (pending.role === 'Super Admin' || pending.role === 'Staff') {
-        req.session.adminId = pending.userId;
-    }
+        req.session.userId = pending.userId;
+        req.session.username = pending.username;
+        req.session.fullName = pending.fullName;
+        req.session.role = pending.role;
 
-    // Reset failed login count
-    await pool.query(
-        'UPDATE system_user SET failed_login_count = 0, locked_until = NULL, last_login = NOW() WHERE user_id = ?',
-        [pending.userId]
-    );
+        if (pending.role === 'Super Admin' || pending.role === 'Staff') {
+            req.session.adminId = pending.userId;
+        }
 
-    res.redirect(_portalFor(pending.role));
+        req.session.save(async (err) => {
+            if (err) return res.status(500).send('Error saving session.');
+
+            await pool.query(
+                'UPDATE system_user SET failed_login_count = 0, locked_until = NULL, last_login = NOW() WHERE user_id = ?',
+                [pending.userId]
+            );
+
+            await logAction(pending.userId, 'LOGIN_SUCCESS', 'system_user', pending.userId, `Role: ${pending.role}`, getClientIP(req));
+            res.redirect(_portalFor(pending.role));
+        });
+    });
 });
 
 // ── GET /signup ──────────────────────────────────────────────
 router.get('/signup', (req, res) => {
     if (req.session.userId) return res.redirect(_portalFor(req.session.role));
-    res.render('auth/signup', {
-        title: 'Sign Up', error: null, formData: {}, layout: false
-    });
+    res.render('auth/signup', { title: 'Sign Up', error: null, formData: {}, layout: false });
 });
 
 // ── POST /signup — Step 1: Validate + send OTP ───────────────
@@ -177,7 +181,6 @@ router.post('/signup', signupLimiter, validateSignup, async (req, res) => {
     const { username, email, password, role, full_name, phone } = req.body;
 
     try {
-        // Check if username or email already exists
         const [existing] = await pool.query(
             'SELECT user_id FROM system_user WHERE username = ? OR email = ?',
             [username, email]
@@ -188,10 +191,9 @@ router.post('/signup', signupLimiter, validateSignup, async (req, res) => {
             });
         }
 
-        // Store signup data in session & send OTP
         const otpKey = `signup:${email}`;
         try {
-            generateOTP(otpKey);
+            generateOTP(otpKey, email, 'signup');
         } catch (e) {
             return res.render('auth/signup', {
                 title: 'Sign Up', error: e.message, formData: req.body, layout: false
@@ -244,7 +246,6 @@ router.post('/verify-signup-otp', otpLimiter, validateOTP, async (req, res) => {
         });
     }
 
-    // OTP valid — create the user account
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -257,7 +258,6 @@ router.post('/verify-signup-otp', otpLimiter, validateOTP, async (req, res) => {
         );
         const userId = userResult.insertId;
 
-        // Create role-specific record
         if (pending.role === 'Donor') {
             await conn.query(
                 `INSERT INTO donor (user_id, first_name, last_name, date_of_birth, gender, phone, email, address, blood_group_id)
@@ -285,9 +285,10 @@ router.post('/verify-signup-otp', otpLimiter, validateOTP, async (req, res) => {
         await conn.commit();
         delete req.session.pendingSignup;
 
+        await logAction(userId, 'SIGNUP', 'system_user', userId, `Role: ${pending.role}`, null);
+
         res.render('auth/login', {
-            title: 'Login',
-            error: null,
+            title: 'Login', error: null,
             success: 'Account created successfully! Please log in.',
             layout: false
         });
@@ -297,8 +298,7 @@ router.post('/verify-signup-otp', otpLimiter, validateOTP, async (req, res) => {
         res.render('auth/signup', {
             title: 'Sign Up',
             error: 'Failed to create account: ' + (err.code === 'ER_DUP_ENTRY' ? 'Username, email, or phone already exists.' : 'Server error.'),
-            formData: pending,
-            layout: false
+            formData: pending, layout: false
         });
     } finally {
         conn.release();
@@ -322,18 +322,17 @@ router.post('/forgot-password', otpLimiter, validateForgotPassword, async (req, 
     try {
         const [rows] = await pool.query('SELECT user_id, email, full_name FROM system_user WHERE email = ?', [email]);
 
-        // Always show success (don't reveal if email exists)
         if (!rows.length) {
             return res.render('auth/forgot-password', {
                 title: 'Forgot Password', error: null,
-                success: 'If that email is registered, an OTP has been sent. Check the console.',
+                success: 'If that email is registered, an OTP has been sent.',
                 layout: false
             });
         }
 
         const user = rows[0];
         const otpKey = `reset:${user.email}`;
-        generateOTP(otpKey);
+        generateOTP(otpKey, user.email, 'reset');
 
         req.session.pendingReset = { userId: user.user_id, email: user.email };
 
@@ -381,11 +380,8 @@ router.post('/verify-reset-otp', otpLimiter, validateOTP, async (req, res) => {
         });
     }
 
-    // OTP valid — show reset password form
     req.session.resetVerified = true;
-    res.render('auth/reset-password', {
-        title: 'Reset Password', error: null, layout: false
-    });
+    res.render('auth/reset-password', { title: 'Reset Password', error: null, layout: false });
 });
 
 // ── POST /reset-password ─────────────────────────────────────
@@ -395,9 +391,7 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
     }
 
     if (req.validationError) {
-        return res.render('auth/reset-password', {
-            title: 'Reset Password', error: req.validationError, layout: false
-        });
+        return res.render('auth/reset-password', { title: 'Reset Password', error: req.validationError, layout: false });
     }
 
     try {
@@ -406,6 +400,8 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
             'UPDATE system_user SET password_hash = ?, failed_login_count = 0, locked_until = NULL WHERE user_id = ?',
             [hash, req.session.pendingReset.userId]
         );
+
+        await logAction(req.session.pendingReset.userId, 'PASSWORD_RESET', 'system_user', req.session.pendingReset.userId, 'Via forgot password', null);
 
         delete req.session.pendingReset;
         delete req.session.resetVerified;
@@ -417,8 +413,68 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.render('auth/reset-password', {
-            title: 'Reset Password', error: 'Failed to reset password. Please try again.', layout: false
+        res.render('auth/reset-password', { title: 'Reset Password', error: 'Failed to reset password.', layout: false });
+    }
+});
+
+// ── GET /change-password ─────────────────────────────────────
+router.get('/change-password', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.render('auth/change-password', {
+        title: 'Change Password',
+        error: null, success: null,
+        layout: ['Donor', 'Hospital', 'NGO'].includes(req.session.role) ? false : 'layout'
+    });
+});
+
+// ── POST /change-password ────────────────────────────────────
+router.post('/change-password', async (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+
+    const { current_password, new_password, confirm_password } = req.body;
+    const useLayout = ['Donor', 'Hospital', 'NGO'].includes(req.session.role) ? false : 'layout';
+
+    if (!current_password || !new_password || !confirm_password) {
+        return res.render('auth/change-password', {
+            title: 'Change Password', error: 'All fields are required.', success: null, layout: useLayout
+        });
+    }
+
+    if (new_password.length < 8) {
+        return res.render('auth/change-password', {
+            title: 'Change Password', error: 'New password must be at least 8 characters.', success: null, layout: useLayout
+        });
+    }
+
+    if (new_password !== confirm_password) {
+        return res.render('auth/change-password', {
+            title: 'Change Password', error: 'New passwords do not match.', success: null, layout: useLayout
+        });
+    }
+
+    try {
+        const [[user]] = await pool.query('SELECT password_hash FROM system_user WHERE user_id = ?', [req.session.userId]);
+        if (!user) return res.redirect('/login');
+
+        const valid = await bcrypt.compare(current_password, user.password_hash);
+        if (!valid) {
+            return res.render('auth/change-password', {
+                title: 'Change Password', error: 'Current password is incorrect.', success: null, layout: useLayout
+            });
+        }
+
+        const hash = await bcrypt.hash(new_password, SALT_ROUNDS);
+        await pool.query('UPDATE system_user SET password_hash = ? WHERE user_id = ?', [hash, req.session.userId]);
+
+        await logAction(req.session.userId, 'PASSWORD_CHANGE', 'system_user', req.session.userId, 'Self-service', getClientIP(req));
+
+        res.render('auth/change-password', {
+            title: 'Change Password', error: null, success: 'Password changed successfully!', layout: useLayout
+        });
+    } catch (err) {
+        console.error(err);
+        res.render('auth/change-password', {
+            title: 'Change Password', error: 'Failed to change password.', success: null, layout: useLayout
         });
     }
 });
@@ -442,7 +498,7 @@ router.post('/resend-otp', otpLimiter, (req, res) => {
     }
 
     try {
-        generateOTP(otpKey);
+        generateOTP(otpKey, email, purpose);
         res.render('auth/verify-otp', {
             title: 'Verify OTP', purpose, email,
             error: null,
@@ -461,6 +517,9 @@ router.post('/resend-otp', otpLimiter, (req, res) => {
 
 // ── GET /logout ──────────────────────────────────────────────
 router.get('/logout', (req, res) => {
+    if (req.session.userId) {
+        logAction(req.session.userId, 'LOGOUT', 'system_user', req.session.userId, null, getClientIP(req));
+    }
     req.session.destroy(() => res.redirect('/login'));
 });
 

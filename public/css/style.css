@@ -1250,3 +1250,504 @@ tbody tr:hover { background: var(--bg-elevated); }
 .password-strength.strong .bar:nth-child(2),
 .password-strength.strong .bar:nth-child(3) { background: #66BB6A; }
 .password-strength.very-strong .bar { background: var(--success); }
+
+/* ── FLOATING BLOOD CELLS (CSS-only animation) ───────────── */
+.blood-cells {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.blood-cell {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 35%, rgba(239, 83, 80, 0.0), rgba(183, 28, 28, 0.35) 45%, rgba(127, 0, 0, 0.25) 70%, transparent 100%);
+  box-shadow: inset -3px -3px 8px rgba(92, 10, 10, 0.4), 0 0 20px rgba(183, 28, 28, 0.1);
+  animation: floatCell linear infinite;
+}
+
+.blood-cell::after {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 25%;
+  width: 35%;
+  height: 25%;
+  background: radial-gradient(ellipse, rgba(255, 138, 128, 0.3), transparent);
+  border-radius: 50%;
+}
+
+@keyframes floatCell {
+  0%   { transform: translateY(110vh) translateX(0) rotate(0deg) scale(1); opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { transform: translateY(-10vh) translateX(80px) rotate(360deg) scale(0.9); opacity: 0; }
+}
+
+/* Generate multiple cells with varied sizes, positions, speeds */
+.blood-cell:nth-child(1)  { width: 22px; height: 22px; left: 5%;  animation-duration: 18s; animation-delay: 0s; }
+.blood-cell:nth-child(2)  { width: 16px; height: 16px; left: 15%; animation-duration: 22s; animation-delay: 2s; opacity: 0.5; }
+.blood-cell:nth-child(3)  { width: 28px; height: 28px; left: 25%; animation-duration: 16s; animation-delay: 4s; }
+.blood-cell:nth-child(4)  { width: 12px; height: 12px; left: 35%; animation-duration: 25s; animation-delay: 1s; opacity: 0.4; }
+.blood-cell:nth-child(5)  { width: 20px; height: 20px; left: 45%; animation-duration: 20s; animation-delay: 3s; }
+.blood-cell:nth-child(6)  { width: 14px; height: 14px; left: 55%; animation-duration: 24s; animation-delay: 5s; opacity: 0.5; }
+.blood-cell:nth-child(7)  { width: 26px; height: 26px; left: 65%; animation-duration: 17s; animation-delay: 0.5s; }
+.blood-cell:nth-child(8)  { width: 10px; height: 10px; left: 75%; animation-duration: 28s; animation-delay: 6s; opacity: 0.3; }
+.blood-cell:nth-child(9)  { width: 18px; height: 18px; left: 85%; animation-duration: 21s; animation-delay: 2.5s; }
+.blood-cell:nth-child(10) { width: 24px; height: 24px; left: 92%; animation-duration: 19s; animation-delay: 4.5s; }
+.blood-cell:nth-child(11) { width: 15px; height: 15px; left: 10%; animation-duration: 26s; animation-delay: 7s; opacity: 0.4; }
+.blood-cell:nth-child(12) { width: 20px; height: 20px; left: 50%; animation-duration: 23s; animation-delay: 8s; }
+
+/* Strengthen login card glassmorphism over the cells */
+.login-page .login-card {
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: cardAppear 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cardAppear {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Vignette overlay */
+.login-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── ERROR PAGE ──────────────────────────────────────────── */
+.error-page {
+  text-align: center;
+  padding: 60px 40px;
+  max-width: 480px;
+  position: relative;
+  z-index: 2;
+}
+
+.error-icon {
+  font-size: 4rem;
+  color: var(--blood-light);
+  margin-bottom: 16px;
+  animation: pulse-blood 2s ease-in-out infinite;
+}
+
+.error-code {
+  font-size: 6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--blood-primary), var(--blood-glow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.error-message {
+  color: var(--text-muted);
+  font-size: .9rem;
+  margin-bottom: 32px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ── WELCOME HERO ────────────────────────────────────────── */
+.welcome-hero {
+  background: linear-gradient(135deg, rgba(127,0,0,0.2), rgba(183,28,28,0.1));
+  border: 1px solid rgba(183, 28, 28, 0.2);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(183, 28, 28, 0.15), transparent);
+  border-radius: 50%;
+}
+
+.welcome-hero h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.welcome-hero p {
+  color: var(--text-muted);
+  font-size: .85rem;
+}
+
+.welcome-hero .tagline {
+  color: var(--blood-glow);
+  font-size: .8rem;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* ── BLOOD GROUP MINI CARDS ──────────────────────────────── */
+.blood-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.blood-mini-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 12px;
+  text-align: center;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.blood-mini-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--card-accent, var(--blood-primary));
+}
+
+.blood-mini-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(183, 28, 28, 0.3);
+}
+
+.blood-mini-card .mini-group {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.blood-mini-card .mini-units {
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+
+.blood-mini-card .mini-status {
+  font-size: .65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.mini-status.critical { background: var(--danger-bg); color: var(--danger); }
+.mini-status.low      { background: var(--warning-bg); color: var(--warning); }
+.mini-status.good     { background: var(--success-bg); color: var(--success); }
+
+/* ── ACTIVITY FEED ───────────────────────────────────────── */
+.activity-feed { list-style: none; }
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .85rem;
+}
+
+.activity-item:last-child { border-bottom: none; }
+
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: .85rem;
+}
+
+.activity-icon.donation { background: var(--danger-bg); color: var(--blood-light); }
+.activity-icon.request  { background: var(--warning-bg); color: var(--warning); }
+.activity-icon.camp     { background: var(--info-bg); color: var(--info); }
+
+.activity-text { flex: 1; }
+.activity-text strong { color: var(--text); }
+.activity-text .activity-detail { color: var(--text-muted); font-size: .78rem; }
+.activity-date { color: var(--text-muted); font-size: .75rem; white-space: nowrap; }
+
+/* ── QUICK ACTION TILES ──────────────────────────────────── */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.quick-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text);
+  font-size: .85rem;
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.quick-tile:hover {
+  border-color: var(--blood-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  color: var(--blood-light);
+}
+
+.quick-tile i {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+
+.quick-tile:nth-child(1) i { background: var(--danger-bg); color: var(--blood-light); }
+.quick-tile:nth-child(2) i { background: var(--warning-bg); color: var(--warning); }
+.quick-tile:nth-child(3) i { background: var(--info-bg); color: var(--info); }
+.quick-tile:nth-child(4) i { background: var(--success-bg); color: var(--success); }
+
+/* ── PORTAL STAT BOXES WITH ICONS ────────────────────────── */
+.stat-box-icon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.stat-box.amber  { border-top: 3px solid var(--warning); }
+.stat-box.amber .num, .stat-box.amber .stat-box-icon { color: var(--warning); -webkit-text-fill-color: var(--warning); }
+.stat-box.green  { border-top: 3px solid var(--success); }
+.stat-box.green .num, .stat-box.green .stat-box-icon { color: var(--success); -webkit-text-fill-color: var(--success); }
+.stat-box.red    { border-top: 3px solid var(--danger); }
+.stat-box.red .num, .stat-box.red .stat-box-icon { color: var(--blood-light); -webkit-text-fill-color: var(--blood-light); }
+.stat-box.blue   { border-top: 3px solid var(--info); }
+.stat-box.blue .num, .stat-box.blue .stat-box-icon { color: var(--info); -webkit-text-fill-color: var(--info); }
+
+/* ── PAGINATION ──────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.pagination a, .pagination span {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.pagination a {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.pagination a:hover {
+  background: var(--bg-hover);
+  border-color: var(--blood-primary);
+  color: var(--blood-light);
+}
+
+.pagination .active {
+  background: linear-gradient(135deg, var(--blood-dark), var(--blood-primary));
+  color: #fff;
+  border: 1px solid var(--blood-primary);
+}
+
+.pagination .disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.pagination .page-info {
+  color: var(--text-muted);
+  font-size: .78rem;
+  padding: 8px 12px;
+}
+
+/* ── AUDIT LOG TABLE ─────────────────────────────────────── */
+.audit-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: .72rem;
+  font-weight: 600;
+}
+
+.audit-action.login    { background: var(--success-bg); color: var(--success); }
+.audit-action.logout   { background: rgba(100,100,100,0.1); color: var(--text-muted); }
+.audit-action.failed   { background: var(--danger-bg); color: var(--danger); }
+.audit-action.admin    { background: var(--warning-bg); color: var(--warning); }
+.audit-action.signup   { background: var(--info-bg); color: var(--info); }
+
+/* ── TOP BAR GREETING ────────────────────────────────────── */
+.top-bar-greeting {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-bar-greeting .greeting-text {
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+
+.top-bar-greeting .greeting-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  background: rgba(183, 28, 28, 0.15);
+  color: var(--blood-light);
+  border: 1px solid rgba(183, 28, 28, 0.3);
+  margin-left: 8px;
+}
+
+/* ── SIDEBAR TOGGLE (mobile) ─────────────────────────────── */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 200;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.app-footer {
+  text-align: center;
+  padding: 16px 32px;
+  color: var(--text-muted);
+  font-size: .72rem;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+/* ── BTN WARNING ─────────────────────────────────────────── */
+.btn-warning {
+  background: linear-gradient(135deg, #E65100, #FF9800);
+  color: #fff;
+  border-color: var(--warning);
+}
+.btn-warning:hover {
+  background: linear-gradient(135deg, #EF6C00, #FFA726);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+/* ── FORM SECTION DIVIDER ────────────────────────────────── */
+.form-section-title {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--blood-light);
+  margin: 20px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Portal change-password link ─────────────────────────── */
+.portal-nav .nav-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 8px 22px;
+}
+
+/* ── RESPONSIVE OVERRIDES ────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar-toggle { display: flex; }
+  
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    position: fixed;
+    width: 260px !important;
+  }
+  .sidebar.sidebar-open { transform: translateX(0); }
+  
+  .main-content { margin-left: 0 !important; }
+  
+  .welcome-hero { flex-direction: column; text-align: center; }
+  .quick-actions { grid-template-columns: 1fr; }
+  .blood-grid { grid-template-columns: repeat(4, 1fr); }
+  .top-bar { padding: 12px 16px 12px 56px; }
+  .content-wrapper { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+  .blood-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: 1fr !important; }
+}

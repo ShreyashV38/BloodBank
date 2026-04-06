@@ -1,6 +1,5 @@
 // ============================================================
-// routes/donors.js — Full Donor Management (Admin)
-// Search, filter, add, edit, view, delete + input validation
+// routes/donors.js — Full Donor Management with Pagination
 // ============================================================
 import express from 'express';
 import db from '../config/db.js';
@@ -8,46 +7,56 @@ import { validateParamId, sanitizeBody, requireRole } from '../middleware/securi
 import { validateAddDonor } from '../middleware/validators.js';
 
 const router = express.Router();
+const PAGE_SIZE = 20;
 
-// GET /donors — list with search and filter
+// GET /donors — list with search, filter, and pagination
 router.get('/', async (req, res) => {
-    const { search, blood_group, eligibility } = req.query;
+    const { search, blood_group, eligibility, page } = req.query;
+    const currentPage = Math.max(1, parseInt(page) || 1);
+    const offset = (currentPage - 1) * PAGE_SIZE;
+
     try {
-        let sql = `
-            SELECT d.*, bg.group_name
-            FROM donor d
-            JOIN blood_group bg ON d.blood_group_id = bg.blood_group_id
-            WHERE 1=1
-        `;
+        let whereSql = ' WHERE 1=1';
         const params = [];
 
         if (search) {
-            sql += ` AND (d.first_name LIKE ? OR d.last_name LIKE ? OR d.phone LIKE ? OR d.email LIKE ?)`;
+            whereSql += ` AND (d.first_name LIKE ? OR d.last_name LIKE ? OR d.phone LIKE ? OR d.email LIKE ?)`;
             const s = `%${search}%`;
             params.push(s, s, s, s);
         }
         if (blood_group) {
-            sql += ` AND d.blood_group_id = ?`;
+            whereSql += ` AND d.blood_group_id = ?`;
             params.push(blood_group);
         }
         if (eligibility === 'eligible') {
-            sql += ` AND d.is_eligible = TRUE`;
+            whereSql += ` AND d.is_eligible = TRUE`;
         } else if (eligibility === 'ineligible') {
-            sql += ` AND d.is_eligible = FALSE`;
+            whereSql += ` AND d.is_eligible = FALSE`;
         }
 
-        sql += ` ORDER BY d.created_at DESC`;
+        // Count total
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) as total FROM donor d ${whereSql}`, params
+        );
+        const totalPages = Math.ceil(total / PAGE_SIZE);
 
-        const [donors] = await db.query(sql, params);
+        // Fetch page
+        const [donors] = await db.query(
+            `SELECT d.*, bg.group_name FROM donor d
+             JOIN blood_group bg ON d.blood_group_id = bg.blood_group_id
+             ${whereSql} ORDER BY d.created_at DESC LIMIT ? OFFSET ?`,
+            [...params, PAGE_SIZE, offset]
+        );
         const [bloodGroups] = await db.query('SELECT * FROM blood_group');
 
         res.render('donors/index', {
             title: 'Donors', donors, bloodGroups,
-            search: search || '', blood_group: blood_group || '', eligibility: eligibility || ''
+            search: search || '', blood_group: blood_group || '', eligibility: eligibility || '',
+            currentPage, totalPages, total
         });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server error: ' + err.message);
+        res.status(500).send('Server error');
     }
 });
 
@@ -84,7 +93,7 @@ router.post('/add', sanitizeBody, validateAddDonor, async (req, res) => {
     }
 });
 
-// GET /donors/view/:id — view donor details
+// GET /donors/view/:id
 router.get('/view/:id', validateParamId(), async (req, res) => {
     try {
         const [donors] = await db.query(`
@@ -123,7 +132,7 @@ router.get('/edit/:id', validateParamId(), async (req, res) => {
     }
 });
 
-// POST /donors/edit/:id (validated)
+// POST /donors/edit/:id
 router.post('/edit/:id', validateParamId(), sanitizeBody, validateAddDonor, async (req, res) => {
     if (req.validationError) {
         const [bloodGroups] = await db.query('SELECT * FROM blood_group');
@@ -146,14 +155,17 @@ router.post('/edit/:id', validateParamId(), sanitizeBody, validateAddDonor, asyn
     }
 });
 
-// POST /donors/delete/:id — Super Admin only
+// POST /donors/delete/:id — Super Admin only (with FK safety)
 router.post('/delete/:id', requireRole('Super Admin'), validateParamId(), async (req, res) => {
     try {
         await db.query('DELETE FROM donor WHERE donor_id = ?', [req.params.id]);
         res.redirect('/donors');
     } catch (err) {
         console.error(err);
-        res.redirect('/donors');
+        const msg = err.code === 'ER_ROW_IS_REFERENCED_2'
+            ? 'Cannot delete donor with existing donations or appointments. Deactivate instead.'
+            : 'Failed to delete donor.';
+        res.redirect('/donors?error=' + encodeURIComponent(msg));
     }
 });
 

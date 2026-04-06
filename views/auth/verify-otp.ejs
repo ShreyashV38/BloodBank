@@ -1,4 +1,4 @@
-<%# views/auth/verify-otp.ejs — OTP verification (login, signup, reset) %>
+<%# views/auth/verify-otp.ejs — OTP verification with Blood Cells %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +12,14 @@
 </head>
 <body>
     <div class="login-page">
+        <!-- Floating Blood Cells -->
+        <div class="blood-cells">
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+        </div>
+
         <div class="login-card" style="width:440px;">
             <div class="login-logo">
                 <i class="fa-solid fa-shield-halved" style="font-size:2.5rem;"></i>
@@ -29,7 +37,7 @@
 
             <div class="alert alert-info" style="font-size:.8rem;">
                 <i class="fa-solid fa-info-circle"></i>
-                OTP sent to <strong><%= email %></strong>. Check the server console for the code.
+                OTP sent to <strong><%= email %></strong>. Check your email inbox (or server console).
             </div>
 
             <% if (error) { %>
@@ -38,6 +46,7 @@
 
             <form method="POST" action="/verify-<%= purpose === 'login' ? 'login' : purpose === 'signup' ? 'signup' : 'reset' %>-otp"
                   id="otpForm">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                 <div class="otp-container">
                     <input type="text" class="otp-input" maxlength="1" data-index="0" autofocus inputmode="numeric" />
                     <input type="text" class="otp-input" maxlength="1" data-index="1" inputmode="numeric" />
@@ -50,7 +59,7 @@
 
                 <div class="otp-timer">
                     <i class="fa-regular fa-clock"></i>
-                    Expires in <span id="timer"><%= timeRemaining %></span>s
+                    Expires in <span id="timer" data-remaining="<%= timeRemaining %>"><%= timeRemaining %></span>s
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" id="verifyBtn">
@@ -59,6 +68,7 @@
             </form>
 
             <form method="POST" action="/resend-otp" style="margin-top:16px;">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                 <input type="hidden" name="purpose" value="<%= purpose %>" />
                 <button type="submit" class="btn btn-outline" style="width:100%;justify-content:center;" id="resendBtn">
                     <i class="fa-solid fa-arrow-rotate-right"></i> Resend OTP
@@ -71,62 +81,6 @@
         </div>
     </div>
 
-    <script>
-        // OTP input auto-focus handling
-        const inputs = document.querySelectorAll('.otp-input');
-        const hidden = document.getElementById('otpHidden');
-        const form = document.getElementById('otpForm');
-
-        inputs.forEach((input, i) => {
-            input.addEventListener('input', (e) => {
-                const val = e.target.value.replace(/\D/g, '');
-                e.target.value = val;
-                if (val && i < 5) inputs[i + 1].focus();
-                updateHidden();
-            });
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !input.value && i > 0) {
-                    inputs[i - 1].focus();
-                }
-            });
-
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
-                paste.split('').forEach((ch, j) => {
-                    if (inputs[j]) { inputs[j].value = ch; }
-                });
-                const last = Math.min(paste.length, 6) - 1;
-                if (inputs[last]) inputs[last].focus();
-                updateHidden();
-            });
-        });
-
-        function updateHidden() {
-            hidden.value = Array.from(inputs).map(i => i.value).join('');
-        }
-
-        form.addEventListener('submit', () => updateHidden());
-
-        // Countdown timer
-        let remaining = parseInt('<%= timeRemaining %>') || 0;
-        const timerEl = document.getElementById('timer');
-        const resendBtn = document.getElementById('resendBtn');
-
-        function tick() {
-            if (remaining <= 0) {
-                timerEl.textContent = 'Expired';
-                timerEl.style.color = 'var(--danger)';
-                return;
-            }
-            remaining--;
-            const m = Math.floor(remaining / 60);
-            const s = remaining % 60;
-            timerEl.textContent = m > 0 ? `${m}:${s.toString().padStart(2, '0')}` : `${s}`;
-        }
-
-        setInterval(tick, 1000);
-    </script>
+    <script src="/js/otp.js"></script>
 </body>
 </html>

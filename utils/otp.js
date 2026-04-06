@@ -1,8 +1,8 @@
 // ============================================================
-// utils/otp.js — Simulated OTP Generation & Verification
-// Industry-grade OTP without external SMS/email APIs
+// utils/otp.js — OTP Generation & Verification + Email Delivery
 // ============================================================
 import crypto from 'crypto';
+import { sendOTPEmail } from './mailer.js';
 
 // In-memory OTP store  { key: { code, expiresAt, attempts } }
 const otpStore = new Map();
@@ -17,11 +17,13 @@ setInterval(() => {
 
 /**
  * Generate a 6-digit OTP for a given key (email/phone/userId)
- * @param {string} key   - unique identifier (email, phone, etc.)
- * @param {number} ttlMs - time-to-live in ms (default 5 minutes)
+ * @param {string} key       — unique identifier (email, phone, etc.)
+ * @param {string} email     — email address to send OTP to
+ * @param {string} purpose   — 'login', 'signup', or 'reset'
+ * @param {number} ttlMs     — time-to-live in ms (default 5 minutes)
  * @returns {{ code: string, expiresAt: number }}
  */
-export function generateOTP(key, ttlMs = 5 * 60 * 1000) {
+export function generateOTP(key, email = null, purpose = 'verification', ttlMs = 5 * 60 * 1000) {
     // Rate-limit: max 5 OTPs per key per 15 min window
     const existing = otpStore.get(key);
     if (existing && existing.rateCount >= 5 && Date.now() - existing.rateWindowStart < 15 * 60 * 1000) {
@@ -44,10 +46,10 @@ export function generateOTP(key, ttlMs = 5 * 60 * 1000) {
             : Date.now()
     });
 
-    // ── SIMULATED DELIVERY ──────────────────────────────────
+    // ── Console log (always, for dev convenience) ────────────
     console.log('');
     console.log('╔══════════════════════════════════════════╗');
-    console.log('║       📱 SIMULATED OTP DELIVERY          ║');
+    console.log('║       📱 OTP GENERATED                   ║');
     console.log('╠══════════════════════════════════════════╣');
     console.log(`║  To:   ${key.padEnd(33)}║`);
     console.log(`║  Code: ${code.padEnd(33)}║`);
@@ -55,14 +57,20 @@ export function generateOTP(key, ttlMs = 5 * 60 * 1000) {
     console.log('╚══════════════════════════════════════════╝');
     console.log('');
 
+    // ── Send via email (non-blocking) ────────────────────────
+    if (email) {
+        sendOTPEmail(email, code, purpose, Math.round(ttlMs / 60000))
+            .then(sent => {
+                if (sent) console.log(`📧 OTP emailed to ${email}`);
+            })
+            .catch(err => console.error('Email send error:', err.message));
+    }
+
     return { code, expiresAt };
 }
 
 /**
  * Verify an OTP for a given key
- * @param {string} key  - the same key used during generation
- * @param {string} code - the 6-digit code entered by user
- * @returns {{ valid: boolean, error?: string }}
  */
 export function verifyOTP(key, code) {
     const data = otpStore.get(key);

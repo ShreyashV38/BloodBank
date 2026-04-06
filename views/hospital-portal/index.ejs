@@ -1,222 +1,177 @@
-<%# views/hospital-portal/index.ejs — Hospital self-service portal %>
-    <!DOCTYPE html>
-    <html lang="en">
-
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>
-            <%= hospital ? hospital.name : 'Hospital Portal' %> — Goa Blood Bank
-        </title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-        <link rel="stylesheet" href="/css/style.css" />
-    <style>
-        /* Hospital portal uses shared portal styles from style.css */
-    </style>
-    </head>
-
-    <body>
-        <div class="portal-wrap">
-
-            <!-- Sidebar -->
-            <aside class="portal-sidebar">
-                <div class="logo">
-                    <i class="fa-solid fa-droplet"></i>
-                    <h2>Goa Blood Bank</h2>
-                    <p>
-                        <%= hospital ? hospital.name : 'Hospital Portal' %>
-                    </p>
-                </div>
-                <nav class="portal-nav">
-                    <a href="/hospital-portal" class="active"><i class="fa-solid fa-clipboard-list"></i> My Requests</a>
-                </nav>
-                <div class="portal-footer">
-                    <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-                </div>
-            </aside>
-
-            <!-- Main Content -->
-            <main class="portal-main">
-                <div class="portal-header">
-                    <h1><i class="fa-solid fa-hospital" style="color:#7f0000"></i>
-                        <%= hospital ? hospital.name : 'Hospital Portal' %>
-                    </h1>
-                    <p>
-                        <% if (hospital) { %>
-                            <i class="fa-solid fa-location-dot"></i>
-                            <%= hospital.address %>, <%= hospital.city %>, Goa
-                                    &nbsp;|&nbsp; <i class="fa-solid fa-user"></i>
-                                    <%= hospital.contact_person %>
-                                        &nbsp;|&nbsp; <i class="fa-solid fa-phone"></i>
-                                        <%= hospital.phone %>
-                                            <% } %>
-                    </p>
-                </div>
-
-                <% if (success) { %>
-                    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i>
-                        <%= success %>
+<%# views/hospital-portal/index.ejs — Enhanced Hospital Portal %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hospital Portal — Goa Blood Bank</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>Goa Blood Bank</h2>
+                <p><%= hospital ? hospital.name : 'Hospital Portal' %></p>
+            </div>
+            <nav class="portal-nav">
+                <a href="/hospital-portal" class="active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                <div class="nav-divider"></div>
+                <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
+            </nav>
+            <div class="portal-footer">
+                <% if (admin) { %>
+                    <div style="margin-bottom:12px;">
+                        <div class="admin-name" style="color:#fff;"><%= admin.fullName %></div>
+                        <div class="admin-role" style="color:rgba(255,255,255,.5);"><%= admin.role %></div>
                     </div>
-                    <% } %>
-                        <% if (error) { %>
-                            <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i>
-                                <%= error %>
+                <% } %>
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-hospital"></i> <%= hospital ? hospital.name : 'Hospital Portal' %></h1>
+                <% if (hospital) { %>
+                    <p><i class="fa-solid fa-location-dot"></i> <%= hospital.city %>, Goa &nbsp;|&nbsp; <i class="fa-solid fa-phone"></i> <%= hospital.phone %></p>
+                <% } %>
+            </div>
+
+            <% if (success) { %>
+                <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+            <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+            <% } %>
+
+            <% if (hospital) { %>
+                <%
+                    const pending = requests.filter(r => r.status === 'Pending');
+                    const fulfilled = requests.filter(r => r.status === 'Fulfilled' || r.status === 'Approved');
+                    const critical = requests.filter(r => r.urgency === 'Critical' && r.status === 'Pending');
+                %>
+
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-box amber">
+                        <i class="fa-solid fa-clock stat-box-icon"></i>
+                        <div class="num"><%= pending.length %></div>
+                        <div class="lbl">Pending</div>
+                    </div>
+                    <div class="stat-box green">
+                        <i class="fa-solid fa-circle-check stat-box-icon"></i>
+                        <div class="num"><%= fulfilled.length %></div>
+                        <div class="lbl">Fulfilled</div>
+                    </div>
+                    <div class="stat-box red">
+                        <i class="fa-solid fa-triangle-exclamation stat-box-icon"></i>
+                        <div class="num"><%= critical.length %></div>
+                        <div class="lbl">Critical</div>
+                    </div>
+                    <div class="stat-box blue">
+                        <i class="fa-solid fa-clipboard-list stat-box-icon"></i>
+                        <div class="num"><%= requests.length %></div>
+                        <div class="lbl">Total Requests</div>
+                    </div>
+                </div>
+
+                <!-- New Request Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-plus-circle"></i> Raise Blood Request</span>
+                    </div>
+                    <form method="POST" action="/hospital-portal/request">
+                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-droplet"></i> Blood Group *</label>
+                                <select name="blood_group_id" required>
+                                    <option value="">— Select —</option>
+                                    <% blood_groups.forEach(bg => { %>
+                                        <option value="<%= bg.blood_group_id %>"><%= bg.group_name %></option>
+                                    <% }); %>
+                                </select>
                             </div>
-                            <% } %>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-vial"></i> Units Required *</label>
+                                <input type="number" name="units_required" min="0.5" step="0.5" required placeholder="e.g. 2" />
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-gauge-high"></i> Urgency *</label>
+                                <select name="urgency" required>
+                                    <option value="Normal">Normal</option>
+                                    <option value="Urgent">Urgent</option>
+                                    <option value="Critical">Critical</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-calendar"></i> Required By</label>
+                                <input type="date" name="required_by_date" />
+                            </div>
+                            <div class="form-group" style="grid-column:1/-1;">
+                                <label><i class="fa-solid fa-comment-medical"></i> Purpose</label>
+                                <input type="text" name="purpose" placeholder="e.g. Surgery, Transfusion, Emergency" />
+                            </div>
+                        </div>
+                        <div style="margin-top:14px;">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
+                        </div>
+                    </form>
+                </div>
 
-                                <!-- Stats row -->
-                                <% if (hospital) { %>
-                                    <div class="stats-row">
-                                        <div class="stat-box">
-                                            <div class="num">
-                                                <%= requests.filter(r=>r.status==='Pending').length %>
-                                            </div>
-                                            <div class="lbl">Pending</div>
-                                        </div>
-                                        <div class="stat-box">
-                                            <div class="num">
-                                                <%= requests.filter(r=>r.status==='Fulfilled').length %>
-                                            </div>
-                                            <div class="lbl">Fulfilled</div>
-                                        </div>
-                                        <div class="stat-box">
-                                            <div class="num">
-                                                <%= requests.filter(r=>r.urgency==='Critical').length %>
-                                            </div>
-                                            <div class="lbl">Critical</div>
-                                        </div>
-                                        <div class="stat-box">
-                                            <div class="num">
-                                                <%= requests.length %>
-                                            </div>
-                                            <div class="lbl">Total Requests</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- New Request Form -->
-                                    <div class="card" style="margin-bottom:28px;">
-                                        <div class="card-header">
-                                            <span class="card-title"><i class="fa-solid fa-plus"></i> Raise New Blood
-                                                Request</span>
-                                        </div>
-                                        <form method="POST" action="/hospital-portal/request">
-                                            <div class="form-grid" style="padding:20px;">
-                                                <div class="form-group">
-                                                    <label>Blood Group *</label>
-                                                    <select name="blood_group_id" required>
-                                                        <option value="">— Select —</option>
-                                                        <% blood_groups.forEach(bg=> { %>
-                                                            <option value="<%= bg.blood_group_id %>">
-                                                                <%= bg.group_name %>
-                                                            </option>
-                                                            <% }) %>
-                                                    </select>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Units Required *</label>
-                                                    <input type="number" name="units_required" min="1" max="50"
-                                                        step="0.5" required placeholder="e.g. 2" />
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Urgency *</label>
-                                                    <select name="urgency" required>
-                                                        <option value="Normal">Normal</option>
-                                                        <option value="Urgent">Urgent</option>
-                                                        <option value="Critical">Critical</option>
-                                                    </select>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Required By Date *</label>
-                                                    <input type="date" name="required_by_date" required />
-                                                </div>
-                                                <div class="form-group" style="grid-column:1/-1;">
-                                                    <label>Purpose / Reason *</label>
-                                                    <input type="text" name="purpose" required
-                                                        placeholder="e.g. Emergency surgery, Scheduled transfusion" />
-                                                </div>
-                                            </div>
-                                            <div style="padding:0 20px 20px;">
-                                                <button type="submit" class="btn btn-primary">
-                                                    <i class="fa-solid fa-paper-plane"></i> Submit Request
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-
-                                    <!-- Request History -->
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <span class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> My
-                                                Request History</span>
-                                        </div>
-                                        <% if (requests.length===0) { %>
-                                            <p style="padding:24px;color:#718096;text-align:center;">No requests raised
-                                                yet.</p>
+                <!-- Request History -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Request History (<%= requests.length %>)</span>
+                    </div>
+                    <% if (requests.length === 0) { %>
+                        <p style="color:var(--text-muted);text-align:center;padding:24px;">No requests yet. Submit your first blood request above.</p>
+                    <% } else { %>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Date</th><th>Blood Group</th><th>Units</th><th>Urgency</th><th>Required By</th><th>Status</th></tr>
+                                </thead>
+                                <tbody>
+                                    <% requests.forEach(r => {
+                                        const statusClass = {Pending:'badge-warning',Approved:'badge-success',Fulfilled:'badge-success',Rejected:'badge-danger'}[r.status] || 'badge-gray';
+                                        const urgClass = {Critical:'urgency-Critical',Urgent:'urgency-Urgent',Normal:'urgency-Normal'}[r.urgency] || '';
+                                    %>
+                                    <tr>
+                                        <td style="font-size:.82rem;color:var(--text-muted)"><%= new Date(r.request_date).toDateString() %></td>
+                                        <td><span class="blood-badge" style="background:rgba(239,83,80,0.15);color:var(--blood-light);border:1px solid rgba(239,83,80,0.3);"><%= r.group_name %></span></td>
+                                        <td style="font-weight:600"><%= r.units_required %></td>
+                                        <td><span class="<%= urgClass %>"><%= r.urgency %></span></td>
+                                        <td>
+                                            <% if (r.required_by_date) { %>
+                                                <span style="font-size:.82rem;">
+                                                    <%= new Date(r.required_by_date).toDateString() %>
+                                                    <% if (r.days_left !== null && r.days_left !== undefined) { %>
+                                                        <br><span class="<%= r.days_left <= 2 ? 'days-left-danger' : r.days_left <= 5 ? 'days-left-warn' : 'days-left-ok' %>">
+                                                            <%= r.days_left <= 0 ? 'Overdue' : r.days_left + ' days left' %>
+                                                        </span>
+                                                    <% } %>
+                                                </span>
                                             <% } else { %>
-                                                <table class="table">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>#</th>
-                                                            <th>Blood Group</th>
-                                                            <th>Units</th>
-                                                            <th>Urgency</th>
-                                                            <th>Status</th>
-                                                            <th>Required By</th>
-                                                            <th>Purpose</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <% requests.forEach(r=> {
-                                                            let daysClass = 'days-left-ok';
-                                                            if (r.days_left <= 1) daysClass='days-left-danger' ; else if
-                                                                (r.days_left <=3) daysClass='days-left-warn' ; %>
-                                                                <tr>
-                                                                    <td>
-                                                                        <%= r.request_id %>
-                                                                    </td>
-                                                                    <td><strong>
-                                                                            <%= r.group_name %>
-                                                                        </strong></td>
-                                                                    <td>
-                                                                        <%= r.units_required %>
-                                                                    </td>
-                                                                    <td><span class="urgency-<%= r.urgency %>">
-                                                                            <%= r.urgency %>
-                                                                        </span></td>
-                                                                    <td>
-                                                                        <span
-                                                                            class="badge badge-<%= r.status==='Pending'?'warning':r.status==='Fulfilled'?'success':r.status==='Rejected'?'danger':'primary' %>">
-                                                                            <%= r.status %>
-                                                                        </span>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= r.required_by_date ? new
-                                                                            Date(r.required_by_date).toLocaleDateString('en-IN')
-                                                                            : '—' %>
-                                                                            <% if (r.required_by_date &&
-                                                                                r.status==='Pending' ) { %>
-                                                                                <div class="<%= daysClass %>">
-                                                                                    (<%= r.days_left>= 0 ? r.days_left +
-                                                                                        ' days left' : 'Overdue' %>)
-                                                                                </div>
-                                                                                <% } %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= r.purpose || '—' %>
-                                                                    </td>
-                                                                </tr>
-                                                                <% }) %>
-                                                    </tbody>
-                                                </table>
-                                                <% } %>
-                                    </div>
-                                    <% } %>
-                                        <%# end if hospital %>
-            </main>
-        </div>
-    </body>
-
-    </html>
+                                                <span style="color:var(--text-muted)">—</span>
+                                            <% } %>
+                                        </td>
+                                        <td><span class="badge <%= statusClass %>"><%= r.status %></span></td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+        </main>
+    </div>
+    <script src="/js/app.js"></script>
+</body>
+</html>

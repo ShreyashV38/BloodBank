@@ -14,6 +14,7 @@
         </span>
     </div>
     <form method="POST" action="/hospitals/add">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
         <div class="form-grid">
             <div class="form-group">
                 <label>Hospital Name *</label>
@@ -98,6 +99,7 @@
                         <% if (typeof admin !== 'undefined' && admin.role === 'Super Admin') { %>
                         <form method="POST" action="/hospitals/delete/<%= h.hospital_id %>"
                               style="display:inline" onsubmit="return confirm('Remove <%= h.name %>?')">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                             <button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>
                         </form>
                         <% } %>

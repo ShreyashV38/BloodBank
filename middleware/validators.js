@@ -31,7 +31,7 @@ export const validateSignup = [
     body('full_name')
         .trim().notEmpty().withMessage('Full name is required.')
         .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters.')
-        .matches(/^[a-zA-Z\s.]+$/).withMessage('Name can only contain letters, spaces, and periods.'),
+        .matches(/^[a-zA-Z\s.\-']+$/).withMessage('Name can only contain letters, spaces, periods, hyphens, and apostrophes.'),
     body('username')
         .trim().notEmpty().withMessage('Username is required.')
         .isLength({ min: 3, max: 50 }).withMessage('Username must be 3-50 characters.')
@@ -61,8 +61,10 @@ export const validateSignup = [
 
 // ── Donor-specific signup fields ─────────────────────────────
 export const validateDonorSignup = [
-    body('first_name').trim().notEmpty().withMessage('First name is required.'),
-    body('last_name').trim().notEmpty().withMessage('Last name is required.'),
+    body('first_name').trim().notEmpty().withMessage('First name is required.')
+        .matches(/^[a-zA-Z\s.\-']+$/).withMessage('First name can only contain letters, spaces, periods, hyphens, and apostrophes.'),
+    body('last_name').trim().notEmpty().withMessage('Last name is required.')
+        .matches(/^[a-zA-Z\s.\-']+$/).withMessage('Last name can only contain letters, spaces, periods, hyphens, and apostrophes.'),
     body('date_of_birth')
         .notEmpty().withMessage('Date of birth is required.')
         .isDate().withMessage('Invalid date format.')

@@ -43,7 +43,7 @@ function bloodClass(g) {
 
 <div class="card">
     <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-users"></i> Donors (<%= donors.length %>)</span>
+        <span class="card-title"><i class="fa-solid fa-users"></i> Donors (<%= total %>)</span>
         <a href="/donors/add" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Donor</a>
     </div>
     <div class="table-wrap">
@@ -88,4 +88,25 @@ function bloodClass(g) {
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination -->
+    <% if (totalPages > 1) { %>
+    <%
+        const qs = new URLSearchParams();
+        if (search) qs.set('search', search);
+        if (blood_group) qs.set('blood_group', blood_group);
+        if (eligibility) qs.set('eligibility', eligibility);
+        const base = '/donors?' + qs.toString() + (qs.toString() ? '&' : '');
+    %>
+    <div class="pagination">
+        <a href="<%= base %>page=1" class="<%= currentPage <= 1 ? 'disabled' : '' %>"><i class="fa-solid fa-angles-left"></i></a>
+        <a href="<%= base %>page=<%= currentPage - 1 %>" class="<%= currentPage <= 1 ? 'disabled' : '' %>"><i class="fa-solid fa-angle-left"></i></a>
+        <% for (let p = Math.max(1, currentPage - 2); p <= Math.min(totalPages, currentPage + 2); p++) { %>
+            <a href="<%= base %>page=<%= p %>" class="<%= p === currentPage ? 'active' : '' %>"><%= p %></a>
+        <% } %>
+        <a href="<%= base %>page=<%= currentPage + 1 %>" class="<%= currentPage >= totalPages ? 'disabled' : '' %>"><i class="fa-solid fa-angle-right"></i></a>
+        <a href="<%= base %>page=<%= totalPages %>" class="<%= currentPage >= totalPages ? 'disabled' : '' %>"><i class="fa-solid fa-angles-right"></i></a>
+        <span class="page-info">Page <%= currentPage %> of <%= totalPages %> &mdash; <%= total %> donors</span>
+    </div>
+    <% } %>
 </div>

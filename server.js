@@ -2,11 +2,18 @@ import 'dotenv/config';
 import express from 'express';
 import expressLayouts from 'express-ejs-layouts';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// ── Database ─────────────────────────────────────────────────
+import db from './config/db.js';
+
 // ── Security Middleware ──────────────────────────────────────
-import { helmetMiddleware, generalLimiter, sanitizeBody, requireRole } from './middleware/security.js';
+import {
+    helmetMiddleware, generalLimiter, sanitizeBody, requireRole,
+    generateToken, doubleCsrfProtection
+} from './middleware/security.js';
 
 // ── Route Imports ────────────────────────────────────────────
 import donorsRouter from './routes/donors.js';
@@ -25,6 +32,17 @@ import adminRouter from './routes/admin.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+// ── Environment Integrity Check ──────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+    const requiredEnv = ['SESSION_SECRET', 'DB_PASSWORD'];
+    for (const envVar of requiredEnv) {
+        if (!process.env[envVar]) {
+            console.error(`🚨 FATAL ERROR: Missing ${envVar} in production environment.`);
+            process.exit(1);
+        }
+    }
+}
+
 // ── Security Headers ─────────────────────────────────────────
 app.use(helmetMiddleware);
 
@@ -38,6 +56,15 @@ app.set('layout', 'layout');
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cookieParser());
+
+// ── Prevent Browser Caching for Sensitive Routes ─────────────
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '-1');
+    next();
+});
 
 // ── Rate Limiter (general) ───────────────────────────────────
 app.use(generalLimiter);
@@ -46,18 +73,42 @@ app.use(generalLimiter);
 app.use(sanitizeBody);
 
 // ── Session (hardened) ───────────────────────────────────────
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && process.env.NODE_ENV === 'production') {
+    console.error('FATAL ERROR: SESSION_SECRET environment variable is missing.');
+    process.exit(1);
+}
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'bloodbank_goa_secret_CHANGE_ME',
+    secret: sessionSecret || 'bloodbank_goa_secret_CHANGE_ME_DEV_ONLY',
     resave: false,
     saveUninitialized: false,
     cookie: {
         maxAge: 8 * 60 * 60 * 1000,   // 8 hours
-        httpOnly: true,                 // Prevent XSS access to cookie
-        sameSite: 'lax',                // CSRF protection
-        secure: process.env.NODE_ENV === 'production'  // HTTPS only in production
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
     },
-    name: 'bbsid'  // Custom session cookie name (hides framework)
+    name: 'bbsid'
 }));
+
+// ── CSRF Protection ──────────────────────────────────────────
+// Skip CSRF for GET/HEAD/OPTIONS and static files
+app.use((req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    if (req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/images/')) return next();
+    doubleCsrfProtection(req, res, next);
+});
+
+// ── Make CSRF token available to all views ────────────────────
+app.use((req, res, next) => {
+    try {
+        res.locals.csrfToken = generateToken(req, res);
+    } catch {
+        res.locals.csrfToken = '';
+    }
+    next();
+});
 
 // ── Auth Guard ───────────────────────────────────────────────
 const PUBLIC_PATHS = ['/login', '/logout', '/signup', '/forgot-password',
@@ -66,7 +117,6 @@ const PUBLIC_PATHS = ['/login', '/logout', '/signup', '/forgot-password',
 
 app.use((req, res, next) => {
     if (PUBLIC_PATHS.includes(req.path)) return next();
-    // Static files
     if (req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/images/')) return next();
 
     if (!req.session.userId) return res.redirect('/login');
@@ -82,20 +132,25 @@ app.use((req, res, next) => {
     const role = req.session.role;
     const reqPath = req.path;
 
-    // Hospital users can ONLY access their portal
-    if (role === 'Hospital' && !reqPath.startsWith('/hospital-portal') && reqPath !== '/logout') {
-        return res.redirect('/hospital-portal');
-    }
-    // Donor users can ONLY access their portal
-    if (role === 'Donor' && !reqPath.startsWith('/donor-portal') && reqPath !== '/logout') {
-        return res.redirect('/donor-portal');
-    }
-    // NGO users can ONLY access their portal and camps
-    if (role === 'NGO' && !reqPath.startsWith('/ngo-portal') && reqPath !== '/logout') {
-        return res.redirect('/ngo-portal');
+    if (role === 'Super Admin' || role === 'Staff') {
+        if (reqPath.startsWith('/hospital-portal') || reqPath.startsWith('/donor-portal') || reqPath.startsWith('/ngo-portal')) {
+            return res.redirect('/dashboard');
+        }
+        return next();
     }
 
-    next();
+    // Allow authenticated users to change their password
+    if (reqPath === '/change-password') return next();
+
+    if (role === 'Hospital' && (reqPath.startsWith('/hospital-portal') || reqPath === '/logout')) return next();
+    if (role === 'Donor' && (reqPath.startsWith('/donor-portal') || reqPath === '/logout')) return next();
+    if (role === 'NGO' && (reqPath.startsWith('/ngo-portal') || reqPath === '/logout')) return next();
+
+    res.status(403).render('auth/login', {
+        title: 'Access Denied',
+        error: 'You do not have permission to access this page.',
+        success: null, layout: false
+    });
 });
 
 // ── Routes ───────────────────────────────────────────────────
@@ -115,21 +170,44 @@ app.use('/admin', adminRouter);
 // ── Dashboard (admin/staff) ─────────────────────────────────
 app.get('/dashboard', async (req, res) => {
     try {
-        const db = (await import('./config/db.js')).default;
         const [bloodStock] = await db.query('SELECT * FROM vw_blood_stock');
         const [[donorCount]] = await db.query('SELECT COUNT(*) as total FROM donor');
         const [[pendingCount]] = await db.query("SELECT COUNT(*) as total FROM blood_request WHERE status='Pending'");
         const [[hospCount]] = await db.query('SELECT COUNT(*) as total FROM hospital');
+        const [[campCount]] = await db.query("SELECT COUNT(*) as total FROM donation_camp WHERE status IN ('Upcoming','Ongoing')");
+
+        // Recent activity for feed
+        const [recentActivity] = await db.query(`
+            (SELECT 'donation' AS type, CONCAT(d.first_name, ' ', d.last_name) AS actor,
+                    CONCAT(don.units_donated, ' units of ', bg.group_name) AS detail,
+                    don.donation_date AS date
+             FROM donation don
+             JOIN donor d ON don.donor_id = d.donor_id
+             JOIN blood_group bg ON don.blood_group_id = bg.blood_group_id
+             ORDER BY don.donation_date DESC LIMIT 3)
+            UNION ALL
+            (SELECT 'request' AS type, h.name AS actor,
+                    CONCAT(br.units_required, ' units ', bg.group_name, ' — ', br.status) AS detail,
+                    br.request_date AS date
+             FROM blood_request br
+             JOIN hospital h ON br.hospital_id = h.hospital_id
+             JOIN blood_group bg ON br.blood_group_id = bg.blood_group_id
+             ORDER BY br.request_date DESC LIMIT 3)
+            ORDER BY date DESC LIMIT 5
+        `);
+
         res.render('dashboard', {
             title: 'Dashboard',
             bloodStock,
             totalDonors: donorCount.total,
             pendingRequests: pendingCount.total,
             totalHospitals: hospCount.total,
+            activeCamps: campCount.total,
+            recentActivity
         });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server error');
+        res.status(500).render('error', { title: 'Error', code: 500, message: 'Dashboard failed to load.' });
     }
 });
 
@@ -137,28 +215,43 @@ app.get('/', (req, res) => res.redirect('/dashboard'));
 
 // ── 404 Handler ──────────────────────────────────────────────
 app.use((req, res) => {
-    res.status(404).render('auth/login', {
-        title: '404',
-        error: 'Page not found. Please log in.',
-        success: null,
-        layout: false
+    res.status(404).render('error', {
+        title: '404 — Page Not Found',
+        code: 404,
+        message: 'The page you are looking for does not exist.',
+        layout: req.session?.userId ? 'layout' : false
     });
 });
 
 // ── Global Error Handler ─────────────────────────────────────
 app.use((err, req, res, next) => {
+    // CSRF token errors
+    if (err.code === 'EBADCSRFTOKEN' || err.message?.includes('csrf')) {
+        return res.status(403).render('error', {
+            title: 'Session Expired',
+            code: 403,
+            message: 'Your session has expired or the form token is invalid. Please go back and try again.',
+            layout: req.session?.userId ? 'layout' : false
+        });
+    }
+
     console.error('Unhandled error:', err);
-    res.status(500).send('Something went wrong. Please try again.');
+    res.status(500).render('error', {
+        title: 'Server Error',
+        code: 500,
+        message: 'Something went wrong. Please try again.',
+        layout: req.session?.userId ? 'layout' : false
+    });
 });
 
 // ── Start ────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
     console.log('');
     console.log('🩸 ═══════════════════════════════════════════');
     console.log(`🩸  Goa Blood Bank System v3.0`);
     console.log(`🩸  Running at http://localhost:${PORT}`);
-    console.log('🩸  Security: Helmet ✓ | Rate Limit ✓ | Sanitize ✓');
+    console.log('🩸  Security: Helmet ✓ | Rate Limit ✓ | CSRF ✓ | Sanitize ✓');
     console.log('🩸 ═══════════════════════════════════════════');
     console.log('');
 });

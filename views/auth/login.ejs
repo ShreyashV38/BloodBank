@@ -1,4 +1,4 @@
-<%# views/auth/login.ejs — Blood-themed login with OTP %>
+<%# views/auth/login.ejs — Blood-themed login with OTP & Blood Cells %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,6 +13,14 @@
 </head>
 <body>
     <div class="login-page">
+        <!-- Floating Blood Cells -->
+        <div class="blood-cells">
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+        </div>
+
         <div class="login-card">
             <div class="login-logo">
                 <i class="fa-solid fa-droplet"></i>
@@ -29,6 +37,7 @@
             <% } %>
 
             <form method="POST" action="/login" autocomplete="off" id="loginForm">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                 <div class="form-group">
                     <label for="username"><i class="fa-solid fa-user"></i> Username</label>
                     <input type="text" id="username" name="username" required placeholder="Enter your username"

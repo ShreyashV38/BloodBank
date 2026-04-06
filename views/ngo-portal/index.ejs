@@ -1,4 +1,4 @@
-<%# views/ngo-portal/index.ejs — NGO self-service portal %>
+<%# views/ngo-portal/index.ejs — Enhanced NGO Portal %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,6 +20,8 @@
             </div>
             <nav class="portal-nav">
                 <a href="/ngo-portal" class="active"><i class="fa-solid fa-campground"></i> My Camps</a>
+                <div class="nav-divider"></div>
+                <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
             </nav>
             <div class="portal-footer">
                 <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
@@ -48,19 +50,23 @@
             <% if (ngo) { %>
                 <!-- Stats -->
                 <div class="stats-row">
-                    <div class="stat-box">
+                    <div class="stat-box blue">
+                        <i class="fa-solid fa-calendar-plus stat-box-icon"></i>
                         <div class="num"><%= camps.filter(c => c.status === 'Upcoming').length %></div>
                         <div class="lbl">Upcoming</div>
                     </div>
-                    <div class="stat-box">
+                    <div class="stat-box green">
+                        <i class="fa-solid fa-circle-check stat-box-icon"></i>
                         <div class="num"><%= camps.filter(c => c.status === 'Completed').length %></div>
                         <div class="lbl">Completed</div>
                     </div>
-                    <div class="stat-box">
+                    <div class="stat-box red">
+                        <i class="fa-solid fa-users stat-box-icon"></i>
                         <div class="num"><%= camps.reduce((s, c) => s + (c.actual_donors || 0), 0) %></div>
                         <div class="lbl">Total Donors</div>
                     </div>
-                    <div class="stat-box">
+                    <div class="stat-box amber">
+                        <i class="fa-solid fa-flask stat-box-icon"></i>
                         <div class="num"><%= camps.reduce((s, c) => s + Number(c.units_collected || 0), 0) %></div>
                         <div class="lbl">Units Collected</div>
                     </div>
@@ -72,7 +78,9 @@
                         <span class="card-title"><i class="fa-solid fa-plus"></i> Organize New Camp</span>
                     </div>
                     <form method="POST" action="/ngo-portal/camp">
-                        <div class="form-grid" style="padding:0 20px 20px;">
+                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+                        <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> Camp Details</div>
+                        <div class="form-grid" style="padding:0 20px 10px;">
                             <div class="form-group">
                                 <label>Camp Name *</label>
                                 <input type="text" name="name" required placeholder="Blood Donation Drive" />
@@ -91,16 +99,20 @@
                                 <input type="date" name="camp_date" required />
                             </div>
                             <div class="form-group">
+                                <label>Expected Donors</label>
+                                <input type="number" name="expected_donors" min="0" placeholder="50" />
+                            </div>
+                        </div>
+
+                        <div class="form-section-title"><i class="fa-solid fa-clock"></i> Schedule & Location</div>
+                        <div class="form-grid" style="padding:0 20px 10px;">
+                            <div class="form-group">
                                 <label>Start Time</label>
                                 <input type="time" name="start_time" />
                             </div>
                             <div class="form-group">
                                 <label>End Time</label>
                                 <input type="time" name="end_time" />
-                            </div>
-                            <div class="form-group">
-                                <label>Expected Donors</label>
-                                <input type="number" name="expected_donors" min="0" placeholder="50" />
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Location *</label>
@@ -110,6 +122,10 @@
                                 <label>City</label>
                                 <input type="text" name="city" placeholder="City" />
                             </div>
+                        </div>
+
+                        <div class="form-section-title"><i class="fa-solid fa-address-card"></i> Contact</div>
+                        <div class="form-grid" style="padding:0 20px 10px;">
                             <div class="form-group">
                                 <label>Contact Person</label>
                                 <input type="text" name="contact_person" placeholder="Name" />
@@ -166,5 +182,6 @@
             <% } %>
         </main>
     </div>
+    <script src="/js/app.js"></script>
 </body>
 </html>

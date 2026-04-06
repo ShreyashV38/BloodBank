@@ -83,6 +83,7 @@
                         <div style="display:flex;gap:4px;flex-wrap:wrap;">
                             <!-- Toggle active -->
                             <form method="POST" action="/admin/users/toggle/<%= u.user_id %>" style="display:inline">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                                 <button class="btn btn-sm <%= u.is_active ? 'btn-outline' : 'btn-primary' %>" title="<%= u.is_active ? 'Disable' : 'Enable' %>">
                                     <i class="fa-solid fa-<%= u.is_active ? 'ban' : 'check' %>"></i>
                                 </button>
@@ -90,11 +91,13 @@
                             <!-- Unlock if locked -->
                             <% if (isLocked) { %>
                             <form method="POST" action="/admin/users/unlock/<%= u.user_id %>" style="display:inline">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                                 <button class="btn btn-warning btn-sm" title="Unlock"><i class="fa-solid fa-lock-open"></i></button>
                             </form>
                             <% } %>
                             <!-- Role change -->
                             <form method="POST" action="/admin/users/change-role/<%= u.user_id %>" style="display:inline-flex;gap:4px;">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                                 <select name="role" style="font-size:.75rem;padding:2px 6px;border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);">
                                     <% ['Super Admin','Staff','Donor','Hospital','NGO'].forEach(r => { %>
                                         <option value="<%= r %>" <%= u.role === r ? 'selected' : '' %>><%= r %></option>

@@ -14,6 +14,7 @@
                             <span class="card-title"><i class="fa-solid fa-plus"></i> Raise New Blood Request</span>
                         </div>
                         <form method="POST" action="/requests/add">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label>Hospital *</label>
@@ -126,6 +127,7 @@
                                                             action="/requests/reject/<%= r.request_id %>"
                                                             style="display:inline"
                                                             onsubmit="return confirm('Reject this request?')">
+                                                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                                                             <button class="btn btn-danger btn-sm"><i
                                                                     class="fa-solid fa-xmark"></i> Reject</button>
                                                         </form>
@@ -203,6 +205,7 @@
                                     style="color:var(--success)"></i> Approve Request #<span id="modalReqId"></span>
                             </h3>
                             <form method="POST" id="approveForm">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                                 <div class="form-group" style="margin-bottom:14px;">
                                     <label>Inventory ID to draw from *</label>
                                     <input type="number" name="inventory_id" id="modalInvId" required
@@ -222,15 +225,4 @@
                         </div>
                     </div>
 
-                    <script>
-                        function openApprove(reqId, units) {
-                            document.getElementById('modalReqId').textContent = reqId;
-                            document.getElementById('modalUnits').value = units;
-                            document.getElementById('approveForm').action = '/requests/approve/' + reqId;
-                            const m = document.getElementById('approveModal');
-                            m.style.display = 'flex';
-                        }
-                        function closeApprove() {
-                            document.getElementById('approveModal').style.display = 'none';
-                        }
-                    </script>
+                    <script src="/js/requests.js"></script>

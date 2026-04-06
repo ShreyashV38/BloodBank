@@ -4,6 +4,8 @@
 // ============================================================
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import sanitizeHtml from 'sanitize-html';
+import { doubleCsrf } from 'csrf-csrf';
 
 // ── Helmet — Security Headers ────────────────────────────────
 export const helmetMiddleware = helmet({
@@ -12,13 +14,30 @@ export const helmetMiddleware = helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'"]
         }
     },
     crossOriginEmbedderPolicy: false
 });
+
+// ── CSRF Protection ──────────────────────────────────────────
+const csrfSecret = process.env.CSRF_SECRET || 'bloodbank_csrf_dev_secret_key';
+
+const { generateToken, doubleCsrfProtection } = doubleCsrf({
+    getSecret: () => csrfSecret,
+    cookieName: '__csrf',
+    cookieOptions: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+    },
+    getTokenFromRequest: (req) => req.body?._csrf || req.headers['x-csrf-token']
+});
+
+export { generateToken, doubleCsrfProtection };
 
 // ── Rate Limiters ────────────────────────────────────────────
 export const loginLimiter = rateLimit({
@@ -31,6 +50,7 @@ export const loginLimiter = rateLimit({
         res.status(429).render('auth/login', {
             title: 'Login',
             error: 'Too many login attempts. Please try again after 15 minutes.',
+            success: null,
             layout: false
         });
     }
@@ -59,15 +79,17 @@ export const generalLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// ── Input Sanitizer — strip dangerous HTML ───────────────────
+// ── Input Sanitizer — strip dangerous HTML securely ──────────
 export function sanitizeBody(req, res, next) {
     if (req.body && typeof req.body === 'object') {
         for (const key of Object.keys(req.body)) {
+            // Skip CSRF token field
+            if (key === '_csrf') continue;
             if (typeof req.body[key] === 'string') {
-                // Strip HTML tags and trim
-                req.body[key] = req.body[key]
-                    .replace(/<[^>]*>/g, '')
-                    .trim();
+                req.body[key] = sanitizeHtml(req.body[key], {
+                    allowedTags: [],
+                    allowedAttributes: {}
+                }).trim();
             }
         }
     }
@@ -82,6 +104,7 @@ export function requireRole(...roles) {
             return res.status(403).render('auth/login', {
                 title: 'Access Denied',
                 error: 'You do not have permission to access this resource.',
+                success: null,
                 layout: false
             });
         }

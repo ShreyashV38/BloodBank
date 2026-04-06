@@ -1,11 +1,11 @@
 // ============================================================
-// routes/requests.js — Blood Request Management
-// Security hardened: validation, param checks, sanitization
+// routes/requests.js — Blood Request Management + Email Alerts
 // ============================================================
 import express from 'express';
 import db from '../config/db.js';
 import { validateParamId, sanitizeBody } from '../middleware/security.js';
 import { validateBloodRequest } from '../middleware/validators.js';
+import { sendRequestNotification } from '../utils/mailer.js';
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server error: ' + err.message);
+        res.status(500).send('Server error');
     }
 });
 
@@ -41,7 +41,6 @@ router.post('/add', sanitizeBody, validateBloodRequest, async (req, res) => {
 
     const { hospital_id, blood_group_id, units_required, urgency, required_by_date, purpose } = req.body;
 
-    // Whitelist urgency values
     const validUrgencies = ['Normal', 'Urgent', 'Critical'];
     if (!validUrgencies.includes(urgency)) {
         return res.redirect('/requests?error=' + encodeURIComponent('Invalid urgency level.'));
@@ -53,6 +52,18 @@ router.post('/add', sanitizeBody, validateBloodRequest, async (req, res) => {
              VALUES (?, ?, ?, ?, ?, ?)`,
             [hospital_id, blood_group_id, units_required, urgency, required_by_date || null, purpose || null]
         );
+
+        // Send email notification
+        try {
+            const [[hospital]] = await db.query('SELECT name, email FROM hospital WHERE hospital_id = ?', [hospital_id]);
+            const [[bg]] = await db.query('SELECT group_name FROM blood_group WHERE blood_group_id = ?', [blood_group_id]);
+            if (hospital?.email) {
+                sendRequestNotification(hospital.email, hospital.name, {
+                    action: 'created', bloodGroup: bg?.group_name, units: units_required, urgency, purpose
+                });
+            }
+        } catch (emailErr) { console.error('Email notification error:', emailErr.message); }
+
         res.redirect('/requests?success=Blood+request+submitted+successfully');
     } catch (err) {
         console.error(err);
@@ -66,7 +77,6 @@ router.post('/approve/:id', validateParamId(), sanitizeBody, async (req, res) =>
     const request_id = req.params.id;
     const admin_id = req.session.adminId;
 
-    // Validate all required fields
     if (!inventory_id || !/^\d+$/.test(inventory_id)) {
         return res.redirect('/requests?error=' + encodeURIComponent('Invalid inventory ID.'));
     }
@@ -83,24 +93,50 @@ router.post('/approve/:id', validateParamId(), sanitizeBody, async (req, res) =>
             [request_id, parseInt(inventory_id), parseFloat(units_provided), admin_id,
              dispatch_temperature || null, transport_mode || null]
         );
+
+        // Send fulfillment email
+        try {
+            const [[reqData]] = await db.query(`
+                SELECT br.*, h.name AS hospital_name, h.email AS hospital_email, bg.group_name
+                FROM blood_request br JOIN hospital h ON br.hospital_id = h.hospital_id
+                JOIN blood_group bg ON br.blood_group_id = bg.blood_group_id
+                WHERE br.request_id = ?`, [request_id]);
+            if (reqData?.hospital_email) {
+                sendRequestNotification(reqData.hospital_email, reqData.hospital_name, {
+                    action: 'fulfilled', bloodGroup: reqData.group_name, units: units_provided
+                });
+            }
+        } catch (emailErr) { console.error('Email error:', emailErr.message); }
+
         res.redirect('/requests?success=Request+approved+and+inventory+deducted+successfully');
     } catch (err) {
         console.error(err);
-        res.redirect('/requests?error=' + encodeURIComponent(err.message));
+        res.redirect('/requests?error=' + encodeURIComponent('Failed to process request. Please check inventory levels.'));
     }
 });
 
 // POST /requests/reject/:id — reject a request (validated)
 router.post('/reject/:id', validateParamId(), async (req, res) => {
     try {
-        await db.query(
-            "UPDATE blood_request SET status = 'Rejected' WHERE request_id = ?",
-            [req.params.id]
-        );
+        // Send rejection email
+        try {
+            const [[reqData]] = await db.query(`
+                SELECT br.*, h.name AS hospital_name, h.email AS hospital_email, bg.group_name
+                FROM blood_request br JOIN hospital h ON br.hospital_id = h.hospital_id
+                JOIN blood_group bg ON br.blood_group_id = bg.blood_group_id
+                WHERE br.request_id = ?`, [req.params.id]);
+            if (reqData?.hospital_email) {
+                sendRequestNotification(reqData.hospital_email, reqData.hospital_name, {
+                    action: 'rejected', bloodGroup: reqData.group_name, units: reqData.units_required
+                });
+            }
+        } catch (emailErr) { console.error('Email error:', emailErr.message); }
+
+        await db.query("UPDATE blood_request SET status = 'Rejected' WHERE request_id = ?", [req.params.id]);
         res.redirect('/requests?success=Request+rejected');
     } catch (err) {
         console.error(err);
-        res.redirect('/requests');
+        res.redirect('/requests?error=' + encodeURIComponent('Failed to reject request.'));
     }
 });
 

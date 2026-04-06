@@ -1,4 +1,4 @@
-<%# views/auth/signup.ejs — Role-based signup with OTP %>
+<%# views/auth/signup.ejs — Role-based signup with OTP & Blood Cells %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +12,14 @@
 </head>
 <body>
     <div class="login-page">
+        <!-- Floating Blood Cells -->
+        <div class="blood-cells">
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+            <div class="blood-cell"></div><div class="blood-cell"></div><div class="blood-cell"></div>
+        </div>
+
         <div class="login-card" style="width:560px;">
             <div class="login-logo">
                 <i class="fa-solid fa-droplet"></i>
@@ -24,6 +32,8 @@
             <% } %>
 
             <form method="POST" action="/signup" autocomplete="off" id="signupForm">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+
                 <!-- Role Selector -->
                 <div class="role-selector">
                     <label class="role-option <%= (formData.role === 'Donor' ? 'selected' : '') %>" onclick="selectRole('Donor')">
@@ -203,32 +213,6 @@
         </div>
     </div>
 
-    <script>
-        function selectRole(role) {
-            document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
-            document.querySelectorAll('.role-fields').forEach(el => el.classList.remove('active'));
-            const fields = document.getElementById(role.toLowerCase() + '-fields');
-            if (fields) fields.classList.add('active');
-        }
-
-        function checkPasswordStrength(pw) {
-            const el = document.getElementById('pwStrength');
-            let score = 0;
-            if (pw.length >= 8) score++;
-            if (/[A-Z]/.test(pw)) score++;
-            if (/[0-9]/.test(pw)) score++;
-            if (/[!@#$%^&*(),.?":{}|<>]/.test(pw)) score++;
-            el.className = 'password-strength ' +
-                (score <= 1 ? 'weak' : score === 2 ? 'medium' : score === 3 ? 'strong' : 'very-strong');
-        }
-
-        // Show fields for pre-selected role
-        const checkedRole = document.querySelector('input[name="role"]:checked');
-        if (checkedRole) {
-            const fields = document.getElementById(checkedRole.value.toLowerCase() + '-fields');
-            if (fields) fields.classList.add('active');
-        }
-    </script>
+    <script src="/js/signup.js"></script>
 </body>
 </html>
