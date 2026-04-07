@@ -1,6 +1,7 @@
 <%# views/admin/audit.ejs — Enhanced System Audit Log %>
-<div style="margin-bottom:16px;">
+<div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
     <a href="/admin/users" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Users</a>
+    <a href="/admin/backup" class="btn btn-primary btn-sm"><i class="fa-solid fa-file-export"></i> Export Database (.sql)</a>
 </div>
 
 <% if (auditLogs && auditLogs.length > 0) { %>

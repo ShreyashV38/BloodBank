@@ -1763,6 +1763,272 @@ tbody tr:hover { background: var(--bg-elevated); }
 .password-strength.strong .bar:nth-child(3) { background: var(--info); box-shadow: 0 0 8px var(--info); }
 .password-strength.very-strong .bar { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
+/* ── ANALYTICS PAGE ──────────────────────────────────────── */
+.analytics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.analytics-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.analytics-stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 22px 20px;
+  text-align: center;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.analytics-stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--blood-primary), var(--blood-light));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.analytics-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(183, 28, 28, 0.3);
+}
+
+.analytics-stat-card:hover::after { opacity: 1; }
+
+.analytics-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  margin: 0 auto 14px;
+  border: 1px solid;
+}
+
+.analytics-stat-val {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--text), var(--blood-glow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+
+.analytics-stat-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 500;
+}
+
+/* ── SIGNUP WIZARD ───────────────────────────────────────── */
+.signup-wizard {
+  width: 580px;
+  max-width: 95%;
+}
+
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 32px;
+  padding: 0 10px;
+}
+
+.wizard-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.wizard-step-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  font-weight: 700;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 2px solid var(--border);
+  transition: all 0.4s ease;
+  flex-shrink: 0;
+}
+
+.wizard-step-text {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: color 0.4s ease;
+}
+
+.wizard-step-indicator.active .wizard-step-num {
+  background: linear-gradient(135deg, var(--blood-dark), var(--blood-primary));
+  color: #fff;
+  border-color: var(--blood-primary);
+  box-shadow: 0 0 16px rgba(183, 28, 28, 0.4);
+}
+
+.wizard-step-indicator.active .wizard-step-text {
+  color: var(--blood-light);
+}
+
+.wizard-step-indicator.completed .wizard-step-num {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+
+.wizard-step-indicator.completed .wizard-step-text {
+  color: var(--success);
+}
+
+.wizard-connector {
+  width: 48px;
+  height: 2px;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background 0.4s ease;
+  margin: 0 4px;
+}
+
+.wizard-connector.active {
+  background: linear-gradient(90deg, var(--success), var(--blood-primary));
+}
+
+.wizard-body {
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+}
+
+.wizard-panel {
+  display: none;
+  animation: wizardFadeIn 0.4s ease;
+}
+
+.wizard-panel.active {
+  display: block;
+}
+
+@keyframes wizardFadeIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.wizard-nav .btn {
+  min-width: 130px;
+  justify-content: center;
+}
+
+/* Role cards in wizard */
+.role-cards-grid {
+  display: flex;
+  gap: 14px;
+}
+
+.role-card {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.role-card input { display: none; }
+
+.role-card i {
+  font-size: 2.2rem;
+  color: var(--blood-light);
+  margin-bottom: 14px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.role-card:hover {
+  border-color: rgba(183, 28, 28, 0.4);
+  background: rgba(183, 28, 28, 0.05);
+  transform: translateY(-3px);
+}
+
+.role-card:hover i { transform: scale(1.15); }
+
+.role-card.selected {
+  border-color: var(--blood-primary) !important;
+  background: rgba(183, 28, 28, 0.12) !important;
+  box-shadow: 0 4px 20px rgba(183, 28, 28, 0.25);
+}
+
+.role-card.selected::after {
+  content: '\f058';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--success);
+  font-size: 1rem;
+}
+
+.role-card-title {
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.role-card-desc {
+  font-size: .75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.role-detail-section h4 {
+  color: var(--blood-light);
+  margin-bottom: 16px;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ── RESPONSIVE OVERRIDES ────────────────────────────────── */
 @media (max-width: 768px) {
   .sidebar-toggle { display: flex; }
