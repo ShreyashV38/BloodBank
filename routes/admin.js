@@ -3,10 +3,20 @@
 // ============================================================
 import express from 'express';
 import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
 import db from '../config/db.js';
 import { requireRole, sanitizeBody, validateParamId } from '../middleware/security.js';
 import { logAction, getClientIP } from '../utils/audit.js';
 import { exec } from 'child_process';
+
+// ── Backup Rate Limiter — max 2 per hour ─────────────────────
+const backupLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 2,
+    message: 'Too many backup requests. Please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
 const router = express.Router();
 
@@ -158,7 +168,7 @@ router.get('/audit', async (req, res) => {
 });
 
 // GET /admin/backup — DB Backup for Super Admin
-router.get('/backup', async (req, res) => {
+router.get('/backup', backupLimiter, async (req, res) => {
     try {
         const filename = `blood_bank_backup_${Date.now()}.sql`;
         const host = process.env.DB_HOST || 'localhost';

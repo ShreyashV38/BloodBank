@@ -37,7 +37,8 @@
             <% } %>
 
             <form method="POST" action="/login" autocomplete="off" id="loginForm">
-                                <div class="form-group">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                <div class="form-group">
                     <label for="username"><i class="fa-solid fa-user"></i> Username</label>
                     <input type="text" id="username" name="username" required placeholder="Enter your username"
                            minlength="3" maxlength="50" />

@@ -1,0 +1,152 @@
+1. Critical Security Loopholes
+A. Missing CSRF Middleware Implementation
+The Issue: You have csrf-csrf listed in your package.json, and your error handler checks for EBADCSRFTOKEN, but you haven't actually applied the CSRF middleware in server.js. This means your application is currently vulnerable to Cross-Site Request Forgery (CSRF) attacks, where a malicious site could trick an authenticated user's browser into making unwanted requests (like deleting a user or changing a password).
+
+What to use: The csrf-csrf package (already in your dependencies) along with cookie-parser.
+
+How to implement:
+Update middleware/security.js (or server.js) to configure and export the CSRF protection:
+
+JavaScript
+// In middleware/security.js (add this):
+import { doubleCsrf } from 'csrf-csrf';
+
+const { doubleCsrfProtection, generateToken } = doubleCsrf({
+    getSecret: () => process.env.SESSION_SECRET || 'fallback_secret',
+    cookieName: 'x-csrf-token',
+    cookieOptions: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+});
+
+export { doubleCsrfProtection, generateToken };
+Then, in server.js:
+
+JavaScript
+import { doubleCsrfProtection, generateToken } from './middleware/security.js';
+
+// Apply after cookie-parser and session middleware
+app.use(cookieParser());
+app.use(session({ ... }));
+
+// Apply CSRF protection
+app.use(doubleCsrfProtection);
+
+// Expose the token to all your EJS views
+app.use((req, res, next) => {
+    res.locals.csrfToken = generateToken(req, res);
+    next();
+});
+Note: Ensure all your HTML forms include <input type="hidden" name="_csrf" value="<%= csrfToken %>">.
+
+B. Overzealous Input Sanitizer Destroying Passwords
+The Issue: Your sanitizeBody middleware in middleware/security.js blindly applies sanitizeHtml to every string in req.body. If a user creates a strong password like MyP@ssw0rd<3, the sanitizer will treat <3 as an HTML tag and strip it, changing the password to MyP@ssw0rd. This causes authentication failures and prevents users from using secure passwords.
+
+How to implement:
+Exclude password fields from sanitization. EJS handles output encoding automatically, so XSS via passwords isn't a risk.
+
+JavaScript
+// In middleware/security.js -> sanitizeBody
+export function sanitizeBody(req, res, next) {
+    if (req.body && typeof req.body === 'object') {
+        const skipFields = ['_csrf', 'password', 'confirm_password', 'current_password', 'new_password'];
+        for (const key of Object.keys(req.body)) {
+            if (skipFields.includes(key)) continue; // SKIP passwords and tokens
+            
+            if (typeof req.body[key] === 'string') {
+                req.body[key] = sanitizeHtml(req.body[key], {
+                    allowedTags: [],
+                    allowedAttributes: {}
+                }).trim();
+            }
+        }
+    }
+    next();
+}
+C. Database Backup Denial of Service (DoS) Risk
+The Issue: In routes/admin.js, your /admin/backup route triggers a synchronous system command using exec. mysqldump is extremely CPU and memory-intensive. An attacker (or even an authorized but malicious staff member) could spam this endpoint, causing a Denial of Service (DoS) by crashing the server or exhausting DB connections.
+
+What to use: Apply a strict rate limiter to this specific route.
+
+How to implement:
+
+JavaScript
+import rateLimit from 'express-rate-limit';
+
+const backupLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 2, // Max 2 backups per hour
+    message: 'Too many backup requests. Please try again later.'
+});
+
+// Apply to the route in routes/admin.js
+router.get('/backup', backupLimiter, async (req, res) => { ... });
+2. Scalability & Architecture Improvements
+A. In-Memory Session & OTP Storage
+The Issue: Both your Express sessions (server.js) and OTPs (utils/otp.js using new Map()) are stored in the Node.js process memory.
+
+If the server crashes or restarts, all users are logged out and all active OTPs are lost.
+
+If you deploy this to a cloud environment (like AWS, Heroku, or Render) with multiple instances/dynos, an OTP generated on Instance A won't be recognized if the verification request goes to Instance B.
+
+What to use: Redis. It is the industry standard for external session and ephemeral data storage.
+
+How to implement:
+Install packages: npm install redis connect-redis
+
+JavaScript
+// In server.js
+import RedisStore from 'connect-redis';
+import { createClient } from 'redis';
+
+const redisClient = createClient({ url: process.env.REDIS_URL });
+redisClient.connect().catch(console.error);
+
+app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    // ... rest of cookie config
+}));
+You should also update utils/otp.js to store OTPs in Redis with an automatic TTL (Time To Live) instead of a JS Map and a setInterval cleanup loop.
+
+B. Trust Proxy for Production Cookies
+The Issue: In server.js, you have secure: process.env.NODE_ENV === 'production'. If you deploy this app behind a reverse proxy (like Nginx, AWS ALB, or Heroku), the proxy terminates the HTTPS connection. Node.js will think the connection is HTTP and will refuse to set the secure cookie, breaking your authentication entirely in production.
+
+How to implement:
+Tell Express to trust the proxy. Add this right after const app = express();:
+
+JavaScript
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1); // Trust first proxy
+}
+3. Best Practices & Code Polish
+A. Timing Attacks on OTP Verification
+The Issue: In utils/otp.js, you compare the user's input with the stored OTP using data.code !== code.trim(). Standard JavaScript string comparison stops as soon as it finds a mismatch. An advanced attacker can measure the time it takes for the server to respond to guess the OTP character by character.
+
+What to use: Node.js native crypto.timingSafeEqual.
+
+How to implement:
+
+JavaScript
+// In utils/otp.js
+import crypto from 'crypto';
+
+// Replace `if (data.code !== code.trim())` with:
+const storedBuffer = Buffer.from(data.code);
+const inputBuffer = Buffer.from(code.trim().padStart(6, '0')); // Ensure same length
+
+if (!crypto.timingSafeEqual(storedBuffer, inputBuffer)) {
+    data.attempts++;
+    return { valid: false, error: `Invalid OTP.` };
+}
+B. Dangling Password Reset State
+The Issue: In routes/auth.js, after verifying the reset OTP, you set req.session.resetVerified = true. If the user closes the tab and doesn't finish the reset, that boolean stays true in their session forever. If someone else accesses that browser later, they could potentially hit the /reset-password endpoint.
+
+How to implement:
+Clear the pending reset state if it gets too old, or attach a timestamp. At the very least, destroy the session completely after a successful password reset to force a fresh login, which you are already partially doing, but you should explicitly call req.session.destroy() or req.session.regenerate() after the DB update in the /reset-password route.

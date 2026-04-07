@@ -148,7 +148,8 @@ function bloodClass(g) {
                         <span class="card-title"><i class="fa-solid fa-calendar-plus"></i> Book Appointment</span>
                     </div>
                     <form method="POST" action="/donor-portal/book-appointment">
-                                                <div class="form-grid">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                        <div class="form-grid">
                             <div class="form-group">
                                 <label>Date *</label>
                                 <input type="date" name="scheduled_date" required />
@@ -202,7 +203,8 @@ function bloodClass(g) {
                                     <td>
                                         <form method="POST" action="/donor-portal/cancel-appointment/<%= a.appointment_id %>"
                                               style="display:inline" onsubmit="return confirm('Cancel this appointment?')">
-                                                                                        <button class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                                            <button class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Cancel</button>
                                         </form>
                                     </td>
                                 </tr>

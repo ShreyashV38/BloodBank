@@ -14,7 +14,8 @@
                             <span class="card-title"><i class="fa-solid fa-plus"></i> Raise New Blood Request</span>
                         </div>
                         <form method="POST" action="/requests/add">
-                                                        <div class="form-grid">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                            <div class="form-grid">
                                 <div class="form-group">
                                     <label>Hospital *</label>
                                     <select name="hospital_id" required>
@@ -126,7 +127,8 @@
                                                             action="/requests/reject/<%= r.request_id %>"
                                                             style="display:inline"
                                                             onsubmit="return confirm('Reject this request?')">
-                                                                                                                        <button class="btn btn-danger btn-sm"><i
+                                                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                                                            <button class="btn btn-danger btn-sm"><i
                                                                     class="fa-solid fa-xmark"></i> Reject</button>
                                                         </form>
                                                     </td>
@@ -203,7 +205,8 @@
                                     style="color:var(--success)"></i> Approve Request #<span id="modalReqId"></span>
                             </h3>
                             <form method="POST" id="approveForm">
-                                                                <div class="form-group" style="margin-bottom:14px;">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                                <div class="form-group" style="margin-bottom:14px;">
                                     <label>Inventory ID to draw from *</label>
                                     <input type="number" name="inventory_id" id="modalInvId" required
                                         placeholder="e.g., 1" />

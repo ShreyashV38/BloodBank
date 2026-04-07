@@ -89,7 +89,12 @@ export function verifyOTP(key, code) {
         return { valid: false, error: 'Too many failed attempts. Please request a new OTP.' };
     }
 
-    if (data.code !== code.trim()) {
+    // Timing-safe comparison to prevent side-channel attacks
+    const inputTrimmed = code.trim().padStart(6, '0');
+    const storedBuffer = Buffer.from(data.code);
+    const inputBuffer = Buffer.from(inputTrimmed);
+
+    if (storedBuffer.length !== inputBuffer.length || !crypto.timingSafeEqual(storedBuffer, inputBuffer)) {
         data.attempts++;
         return { valid: false, error: `Invalid OTP. ${data.maxAttempts - data.attempts} attempts remaining.` };
     }

@@ -123,7 +123,8 @@
                     </td>
                     <td>
                         <form method="POST" action="/admin/users/unlock/<%= u.user_id %>" style="display:inline">
-                                                        <button class="btn btn-warning btn-sm"><i class="fa-solid fa-lock-open"></i> Unlock</button>
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                            <button class="btn btn-warning btn-sm"><i class="fa-solid fa-lock-open"></i> Unlock</button>
                         </form>
                     </td>
                 </tr>

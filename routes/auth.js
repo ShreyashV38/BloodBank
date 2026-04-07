@@ -403,13 +403,14 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
 
         await logAction(req.session.pendingReset.userId, 'PASSWORD_RESET', 'system_user', req.session.pendingReset.userId, 'Via forgot password', null);
 
-        delete req.session.pendingReset;
-        delete req.session.resetVerified;
-
-        res.render('auth/login', {
-            title: 'Login', error: null,
-            success: 'Password reset successfully! Please log in with your new password.',
-            layout: false
+        // Destroy entire session to prevent dangling reset state
+        req.session.destroy((err) => {
+            if (err) console.error('Session destroy error:', err);
+            res.render('auth/login', {
+                title: 'Login', error: null,
+                success: 'Password reset successfully! Please log in with your new password.',
+                layout: false
+            });
         });
     } catch (err) {
         console.error(err);

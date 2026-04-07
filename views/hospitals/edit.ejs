@@ -9,7 +9,8 @@
         <a href="/hospitals" class="btn btn-outline btn-sm">← Cancel</a>
     </div>
     <form method="POST" action="/hospitals/edit/<%= hospital.hospital_id %>">
-                <div class="form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="form-grid">
             <div class="form-group">
                 <label>Hospital Name *</label>
                 <input type="text" name="name" required value="<%= hospital.name %>" />

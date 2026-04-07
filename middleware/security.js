@@ -5,6 +5,7 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
+import { doubleCsrf } from 'csrf-csrf';
 
 
 // ── Helmet — Security Headers ────────────────────────────────
@@ -22,7 +23,22 @@ export const helmetMiddleware = helmet({
     crossOriginEmbedderPolicy: false
 });
 
-export {};
+// ── CSRF Protection (Double-Submit Cookie) ───────────────────
+const { doubleCsrfProtection, generateToken } = doubleCsrf({
+    getSecret: () => process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'csrf_fallback_secret',
+    cookieName: '__csrf',
+    cookieOptions: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+    },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    getTokenFromRequest: (req) => req.body._csrf || req.headers['x-csrf-token']
+});
+
+export { doubleCsrfProtection, generateToken };
 
 // ── Rate Limiters ────────────────────────────────────────────
 export const loginLimiter = rateLimit({
@@ -67,9 +83,10 @@ export const generalLimiter = rateLimit({
 // ── Input Sanitizer — strip dangerous HTML securely ──────────
 export function sanitizeBody(req, res, next) {
     if (req.body && typeof req.body === 'object') {
+        // Skip CSRF tokens and password fields (passwords can contain <, >, & etc.)
+        const skipFields = ['_csrf', 'password', 'confirm_password', 'current_password', 'new_password'];
         for (const key of Object.keys(req.body)) {
-            // Skip CSRF token field
-            if (key === '_csrf') continue;
+            if (skipFields.includes(key)) continue;
             if (typeof req.body[key] === 'string') {
                 req.body[key] = sanitizeHtml(req.body[key], {
                     allowedTags: [],

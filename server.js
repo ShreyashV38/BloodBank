@@ -11,7 +11,8 @@ import db from './config/db.js';
 
 // ── Security Middleware ──────────────────────────────────────
 import {
-    helmetMiddleware, generalLimiter, sanitizeBody, requireRole
+    helmetMiddleware, generalLimiter, sanitizeBody, requireRole,
+    doubleCsrfProtection, generateToken
 } from './middleware/security.js';
 
 // ── Route Imports ────────────────────────────────────────────
@@ -31,6 +32,11 @@ import adminRouter from './routes/admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+// ── Trust Proxy (for production behind reverse proxy) ────────
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 
 // ── Environment Integrity Check ──────────────────────────────
 if (process.env.NODE_ENV === 'production') {
@@ -92,7 +98,14 @@ app.use(session({
     name: 'bbsid'
 }));
 
+// ── CSRF Protection (after cookie-parser + session) ──────────
+app.use(doubleCsrfProtection);
 
+// Expose CSRF token to all EJS views
+app.use((req, res, next) => {
+    res.locals.csrfToken = generateToken(req, res);
+    next();
+});
 
 // ── Auth Guard ───────────────────────────────────────────────
 const PUBLIC_PATHS = ['/login', '/logout', '/signup', '/forgot-password',
