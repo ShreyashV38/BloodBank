@@ -12,7 +12,7 @@ import db from './config/db.js';
 // ── Security Middleware ──────────────────────────────────────
 import {
     helmetMiddleware, generalLimiter, sanitizeBody, requireRole,
-    doubleCsrfProtection, generateToken
+    doubleCsrfProtection, generateCsrfToken
 } from './middleware/security.js';
 
 // ── Route Imports ────────────────────────────────────────────
@@ -88,7 +88,7 @@ if (!sessionSecret && process.env.NODE_ENV === 'production') {
 app.use(session({
     secret: sessionSecret || 'bloodbank_goa_secret_CHANGE_ME_DEV_ONLY',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,  // Must be true for CSRF to work with new sessions
     cookie: {
         maxAge: 8 * 60 * 60 * 1000,   // 8 hours
         httpOnly: true,
@@ -103,7 +103,12 @@ app.use(doubleCsrfProtection);
 
 // Expose CSRF token to all EJS views
 app.use((req, res, next) => {
-    res.locals.csrfToken = generateToken(req, res);
+    try {
+        res.locals.csrfToken = generateCsrfToken(req, res);
+    } catch (err) {
+        console.error('CSRF Error:', err.message);
+        res.locals.csrfToken = '';
+    }
     next();
 });
 
@@ -224,7 +229,15 @@ app.use((req, res) => {
 // ── Global Error Handler ─────────────────────────────────────
 app.use((err, req, res, next) => {
     // CSRF token errors
-    if (err.code === 'EBADCSRFTOKEN' || err.message?.includes('csrf')) {
+    if (err.code === 'EBADCSRFTOKEN' || err.message?.includes('csrf') || err.message?.includes('CSRF')) {
+        // For API requests, return JSON error
+        if (req.xhr || req.headers.accept?.includes('json')) {
+            return res.status(403).json({
+                error: 'Invalid or expired CSRF token. Please refresh the page and try again.'
+            });
+        }
+
+        // For form submissions, render error page
         return res.status(403).render('error', {
             title: 'Session Expired',
             code: 403,
@@ -233,7 +246,7 @@ app.use((err, req, res, next) => {
         });
     }
 
-    console.error('Unhandled error:', err);
+    console.error('Error:', err.message);
     res.status(500).render('error', {
         title: 'Server Error',
         code: 500,
@@ -245,11 +258,5 @@ app.use((err, req, res, next) => {
 // ── Start ────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '127.0.0.1', () => {
-    console.log('');
-    console.log('🩸 ═══════════════════════════════════════════');
-    console.log(`🩸  Goa Blood Bank System v3.0`);
-    console.log(`🩸  Running at http://localhost:${PORT}`);
-    console.log('🩸  Security: Helmet ✓ | Rate Limit ✓ | CSRF ✓ | Sanitize ✓');
-    console.log('🩸 ═══════════════════════════════════════════');
-    console.log('');
+    console.log(`Server running at http://localhost:${PORT}`);
 });

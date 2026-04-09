@@ -24,9 +24,10 @@ export const helmetMiddleware = helmet({
 });
 
 // ── CSRF Protection (Double-Submit Cookie) ───────────────────
-const { doubleCsrfProtection, generateToken } = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'csrf_fallback_secret',
-    cookieName: '__csrf',
+const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+    getSecret: () => process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'csrf_fallback_secret_change_in_production',
+    getSessionIdentifier: (req) => req.sessionID || 'no-session',
+    cookieName: '__csrf_token',
     cookieOptions: {
         httpOnly: true,
         sameSite: 'lax',
@@ -35,10 +36,10 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
     },
     size: 64,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-    getTokenFromRequest: (req) => req.body._csrf || req.headers['x-csrf-token']
+    getCsrfTokenFromRequest: (req) => req.body?._csrf || req.headers['x-csrf-token']
 });
 
-export { doubleCsrfProtection, generateToken };
+export { doubleCsrfProtection, generateCsrfToken };
 
 // ── Rate Limiters ────────────────────────────────────────────
 export const loginLimiter = rateLimit({
