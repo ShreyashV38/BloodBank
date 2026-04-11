@@ -150,9 +150,26 @@ CREATE TABLE request_fulfillment (
     fulfilled_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,
     fulfilled_by     INT          NOT NULL,
 
+    CONSTRAINT uq_fulfilled_request UNIQUE (request_id),
     CONSTRAINT fk_ful_request FOREIGN KEY (request_id)   REFERENCES blood_request(request_id),
     CONSTRAINT fk_ful_inv     FOREIGN KEY (inventory_id) REFERENCES blood_inventory(inventory_id),
     CONSTRAINT fk_ful_admin   FOREIGN KEY (fulfilled_by) REFERENCES system_user(user_id)
+);
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE 8b: invoice (Billing & Monetization)
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE invoice (
+    invoice_id        INT AUTO_INCREMENT PRIMARY KEY,
+    hospital_id       INT            NOT NULL,
+    fulfillment_id    INT            NOT NULL,
+    amount            DECIMAL(10,2)  NOT NULL,
+    status            ENUM('Pending','Paid','Overdue') DEFAULT 'Pending',
+    issued_date       DATETIME       DEFAULT CURRENT_TIMESTAMP,
+    payment_reference VARCHAR(255)   DEFAULT NULL,
+
+    CONSTRAINT fk_inv_hospital    FOREIGN KEY (hospital_id)    REFERENCES hospital(hospital_id),
+    CONSTRAINT fk_inv_fulfillment FOREIGN KEY (fulfillment_id) REFERENCES request_fulfillment(fulfillment_id)
 );
 
 -- ────────────────────────────────────────────────────────────
@@ -162,13 +179,14 @@ CREATE TABLE appointment (
     appointment_id  INT AUTO_INCREMENT PRIMARY KEY,
     donor_id        INT          NOT NULL,
     scheduled_date  DATE         NOT NULL,
-    time_slot       VARCHAR(10),
+    time_slot       VARCHAR(30),
     status          ENUM('Scheduled','Completed','Cancelled','No-Show') DEFAULT 'Scheduled',
     location        VARCHAR(150) DEFAULT 'GMC Blood Bank, Bambolim, Goa',
     notes           TEXT,
     created_at      DATETIME     DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_appt_donor FOREIGN KEY (donor_id) REFERENCES donor(donor_id)
+    CONSTRAINT fk_appt_donor FOREIGN KEY (donor_id) REFERENCES donor(donor_id),
+    CONSTRAINT uq_appt_donor_date UNIQUE (donor_id, scheduled_date, status)
 );
 
 -- ────────────────────────────────────────────────────────────
@@ -320,6 +338,9 @@ CREATE PROCEDURE sp_fulfill_request (
     IN p_transport_mode VARCHAR(100)
 )
 BEGIN
+    DECLARE v_units_available DECIMAL(6,2);
+    DECLARE v_request_status VARCHAR(20);
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -328,12 +349,47 @@ BEGIN
 
     START TRANSACTION;
 
-    IF (SELECT units_available FROM blood_inventory WHERE inventory_id = p_inventory_id) < p_units THEN
+    SELECT status INTO v_request_status
+    FROM blood_request
+    WHERE request_id = p_request_id
+    FOR UPDATE;
+
+    IF v_request_status IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Blood request not found';
+    END IF;
+
+    IF v_request_status <> 'Pending' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Blood request is not pending';
+    END IF;
+
+    SELECT units_available INTO v_units_available
+    FROM blood_inventory
+    WHERE inventory_id = p_inventory_id
+    FOR UPDATE;
+
+    IF v_units_available IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Inventory batch not found';
+    END IF;
+
+    IF v_units_available < p_units THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient blood units in inventory';
     END IF;
 
+    UPDATE blood_inventory
+    SET units_available = units_available - p_units,
+        last_updated = NOW()
+    WHERE inventory_id = p_inventory_id;
+
     INSERT INTO request_fulfillment (request_id, inventory_id, units_provided, fulfilled_by, dispatch_temperature, transport_mode)
     VALUES (p_request_id, p_inventory_id, p_units, p_admin_id, p_dispatch_temp, p_transport_mode);
+
+    -- Auto-generate invoice: ₹1500 per unit processing fee
+    SET @new_fulfillment_id = LAST_INSERT_ID();
+    SET @v_hospital_id = (SELECT hospital_id FROM blood_request WHERE request_id = p_request_id);
+    SET @v_invoice_amount = p_units * 1500.00;
+
+    INSERT INTO invoice (hospital_id, fulfillment_id, amount, status, issued_date)
+    VALUES (@v_hospital_id, @new_fulfillment_id, @v_invoice_amount, 'Pending', NOW());
 
     UPDATE blood_request SET status = 'Fulfilled' WHERE request_id = p_request_id;
 
@@ -388,8 +444,7 @@ AFTER INSERT ON request_fulfillment
 FOR EACH ROW
 BEGIN
     UPDATE blood_inventory
-    SET    units_available = units_available - NEW.units_provided,
-           last_updated    = NOW()
+    SET    last_updated    = NOW()
     WHERE  inventory_id = NEW.inventory_id;
 END$$
 
@@ -416,3 +471,5 @@ CREATE INDEX idx_camp_status           ON donation_camp(status);
 CREATE INDEX idx_camp_ngo              ON donation_camp(ngo_id);
 CREATE INDEX idx_user_email            ON system_user(email);
 CREATE INDEX idx_user_locked           ON system_user(locked_until);
+CREATE INDEX idx_invoice_hospital      ON invoice(hospital_id);
+CREATE INDEX idx_invoice_status        ON invoice(status);

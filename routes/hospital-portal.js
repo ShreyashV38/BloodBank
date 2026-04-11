@@ -102,4 +102,52 @@ router.post('/request', requireHospital, sanitizeBody, async (req, res) => {
     }
 });
 
+// GET /hospital-portal/invoices — billing & invoices page
+router.get('/invoices', requireHospital, async (req, res) => {
+    try {
+        const [hospitals] = await pool.query('SELECT * FROM hospital WHERE user_id = ?', [req.session.userId]);
+        if (!hospitals.length) {
+            return res.render('hospital-portal/invoices', {
+                title: 'Billing & Invoices', hospital: null,
+                invoices: [], summary: { total: 0, pending: 0, paid: 0 },
+                admin: { fullName: req.session.fullName, role: req.session.role },
+                success: null, error: 'No hospital linked to this account.',
+                csrfToken: res.locals.csrfToken,
+                layout: false
+            });
+        }
+        const hospital = hospitals[0];
+
+        const [invoices] = await pool.query(`
+            SELECT i.*, rf.units_provided, rf.fulfilled_at, rf.transport_mode,
+                   br.request_id, bg.group_name
+            FROM invoice i
+            JOIN request_fulfillment rf ON i.fulfillment_id = rf.fulfillment_id
+            JOIN blood_request br ON rf.request_id = br.request_id
+            JOIN blood_group bg ON br.blood_group_id = bg.blood_group_id
+            WHERE i.hospital_id = ?
+            ORDER BY i.issued_date DESC
+        `, [hospital.hospital_id]);
+
+        const summary = {
+            total: invoices.length,
+            pending: invoices.filter(inv => inv.status === 'Pending').reduce((s, inv) => s + parseFloat(inv.amount), 0),
+            paid: invoices.filter(inv => inv.status === 'Paid').reduce((s, inv) => s + parseFloat(inv.amount), 0)
+        };
+
+        res.render('hospital-portal/invoices', {
+            title: 'Billing & Invoices',
+            hospital, invoices, summary,
+            admin: { fullName: req.session.fullName, role: req.session.role },
+            success: req.query.success || null,
+            error: req.query.error || null,
+            csrfToken: res.locals.csrfToken,
+            layout: false
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+});
+
 export default router;

@@ -23,6 +23,7 @@
     "md-to-pdf": "^5.2.5",
     "mysql2": "^3.9.7",
     "nodemailer": "^8.0.4",
+    "razorpay": "^2.9.6",
     "sanitize-html": "^2.17.2"
   },
   "devDependencies": {

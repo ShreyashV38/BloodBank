@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 import db from '../config/db.js';
 import { requireRole, sanitizeBody, validateParamId } from '../middleware/security.js';
 import { logAction, getClientIP } from '../utils/audit.js';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 
 // ── Backup Rate Limiter — max 2 per hour ─────────────────────
 const backupLimiter = rateLimit({
@@ -176,25 +176,42 @@ router.get('/backup', backupLimiter, async (req, res) => {
         const pass = process.env.DB_PASSWORD || '';
         const dbName = process.env.DB_NAME || 'blood_bank_db';
 
-        const command = `mysqldump -h ${host} -u ${user} ${pass ? `-p${pass}` : ''} ${dbName}`;
-
         res.setHeader('Content-Type', 'application/sql');
         res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
 
-        const child = exec(command);
-        
+        const args = ['-h', host, '-u', user, dbName];
+        const child = spawn('mysqldump', args, {
+            env: {
+                ...process.env,
+                ...(pass ? { MYSQL_PWD: pass } : {})
+            },
+            windowsHide: true
+        });
+
         child.stdout.pipe(res);
-        
-        child.stderr.on('data', data => {
-            // Log real errors via stdout, ignore mysqldump warnings for using password in CLI
-            if (!data.includes('Using a password')) {
-                console.error('Backup stderr:', data);
+
+        child.stderr.on('data', (data) => {
+            console.error('Backup stderr:', data.toString());
+        });
+
+        child.on('error', (err) => {
+            console.error('Backup process error:', err);
+            if (!res.headersSent) {
+                res.status(500).send('Unable to generate database backup');
+            }
+        });
+
+        res.on('close', () => {
+            if (!child.killed) {
+                child.kill();
             }
         });
 
         child.on('close', async (code) => {
             if (code === 0) {
                 await logAction(req.session.userId, 'DB_BACKUP_GENERATED', 'SYSTEM', null, 'Super Admin downloaded DB backup', getClientIP(req));
+            } else if (!res.headersSent) {
+                res.status(500).send('Unable to generate database backup');
             }
         });
 

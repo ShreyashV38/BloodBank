@@ -81,7 +81,7 @@ router.post('/book-appointment', requireDonor, sanitizeBody, async (req, res) =>
         return res.redirect('/donor-portal?error=' + encodeURIComponent('Appointment date must be in the future.'));
     }
     // Validate time slot if provided
-    const validSlots = ['Morning (9-12)', 'Afternoon (12-3)', 'Evening (3-5)', ''];
+    const validSlots = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', ''];
     if (time_slot && !validSlots.includes(time_slot)) {
         return res.redirect('/donor-portal?error=' + encodeURIComponent('Invalid time slot.'));
     }
@@ -97,15 +97,6 @@ router.post('/book-appointment', requireDonor, sanitizeBody, async (req, res) =>
         const [donors] = await pool.query('SELECT donor_id FROM donor WHERE user_id = ?', [req.session.userId]);
         if (!donors.length) return res.redirect('/donor-portal');
 
-        // Check for existing appointment on same date
-        const [existing] = await pool.query(
-            "SELECT appointment_id FROM appointment WHERE donor_id = ? AND scheduled_date = ? AND status = 'Scheduled'",
-            [donors[0].donor_id, scheduled_date]
-        );
-        if (existing.length) {
-            return res.redirect('/donor-portal?error=' + encodeURIComponent('You already have an appointment on this date.'));
-        }
-
         await pool.query(`
             INSERT INTO appointment (donor_id, scheduled_date, time_slot, location, notes)
             VALUES (?, ?, ?, ?, ?)
@@ -115,6 +106,9 @@ router.post('/book-appointment', requireDonor, sanitizeBody, async (req, res) =>
         res.redirect('/donor-portal?success=Appointment+booked+successfully');
     } catch (err) {
         console.error(err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.redirect('/donor-portal?error=' + encodeURIComponent('You already have a scheduled appointment on this date.'));
+        }
         res.redirect('/donor-portal?error=' + encodeURIComponent('Failed to book appointment.'));
     }
 });

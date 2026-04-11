@@ -55,6 +55,20 @@ function stockColor(units) {
             <div class="stat-label">Active Camps</div>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+        <div>
+            <div class="stat-val">₹<%= Number(totalRevenue).toLocaleString('en-IN') %></div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-clock"></i></div>
+        <div>
+            <div class="stat-val">₹<%= Number(pendingPayments).toLocaleString('en-IN') %></div>
+            <div class="stat-label">Pending Payments</div>
+        </div>
+    </div>
 </div>
 
 <!-- Blood Stock + Quick Actions Row -->

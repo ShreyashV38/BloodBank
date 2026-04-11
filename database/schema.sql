@@ -159,6 +159,7 @@ CREATE TABLE request_fulfillment (
     fulfilled_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,
     fulfilled_by     INT          NOT NULL,             -- system_user_id (Staff or Super Admin)
 
+    CONSTRAINT uq_fulfilled_request UNIQUE (request_id),
     CONSTRAINT fk_ful_request FOREIGN KEY (request_id)   REFERENCES blood_request(request_id),
     CONSTRAINT fk_ful_inv     FOREIGN KEY (inventory_id) REFERENCES blood_inventory(inventory_id),
     CONSTRAINT fk_ful_admin   FOREIGN KEY (fulfilled_by) REFERENCES system_user(user_id)
@@ -172,13 +173,14 @@ CREATE TABLE appointment (
     appointment_id  INT AUTO_INCREMENT PRIMARY KEY,
     donor_id        INT          NOT NULL,
     scheduled_date  DATE         NOT NULL,
-    time_slot       VARCHAR(10),                        -- '09:00', '11:30', etc.
+    time_slot       VARCHAR(30),                        -- '09:00', '11:30', etc.
     status          ENUM('Scheduled','Completed','Cancelled','No-Show') DEFAULT 'Scheduled',
     location        VARCHAR(150) DEFAULT 'GMC Blood Bank, Bambolim, Goa',
     notes           TEXT,
     created_at      DATETIME     DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_appt_donor FOREIGN KEY (donor_id) REFERENCES donor(donor_id)
+    CONSTRAINT fk_appt_donor FOREIGN KEY (donor_id) REFERENCES donor(donor_id),
+    CONSTRAINT uq_appt_donor_date UNIQUE (donor_id, scheduled_date, status)
 );
 
 
@@ -189,7 +191,7 @@ CREATE TABLE appointment (
 --  Current stock summary per blood group
 CREATE OR REPLACE VIEW vw_blood_stock AS
     SELECT
-        bg.group_name,
+        bg.group_name,  
         COALESCE(SUM(bi.units_available), 0) AS total_units,
         MIN(bi.expiry_date)                  AS earliest_expiry
     FROM blood_group bg
@@ -273,6 +275,9 @@ CREATE PROCEDURE sp_fulfill_request (
     IN p_transport_mode VARCHAR(100)
 )
 BEGIN
+    DECLARE v_units_available DECIMAL(6,2);
+    DECLARE v_request_status VARCHAR(20);
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -281,10 +286,37 @@ BEGIN
 
     START TRANSACTION;
 
+    SELECT status INTO v_request_status
+    FROM blood_request
+    WHERE request_id = p_request_id
+    FOR UPDATE;
+
+    IF v_request_status IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Blood request not found';
+    END IF;
+
+    IF v_request_status <> 'Pending' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Blood request is not pending';
+    END IF;
+
+    SELECT units_available INTO v_units_available
+    FROM blood_inventory
+    WHERE inventory_id = p_inventory_id
+    FOR UPDATE;
+
+    IF v_units_available IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Inventory batch not found';
+    END IF;
+
     -- Validate stock
-    IF (SELECT units_available FROM blood_inventory WHERE inventory_id = p_inventory_id) < p_units THEN
+    IF v_units_available < p_units THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient blood units in inventory';
     END IF;
+
+    UPDATE blood_inventory
+    SET units_available = units_available - p_units,
+        last_updated = NOW()
+    WHERE inventory_id = p_inventory_id;
 
     -- Insert fulfillment record (trigger auto-deducts inventory)
     INSERT INTO request_fulfillment (request_id, inventory_id, units_provided, fulfilled_by, dispatch_temperature, transport_mode)
@@ -347,8 +379,7 @@ AFTER INSERT ON request_fulfillment
 FOR EACH ROW
 BEGIN
     UPDATE blood_inventory
-    SET    units_available = units_available - NEW.units_provided,
-           last_updated    = NOW()
+    SET    last_updated = NOW()
     WHERE  inventory_id = NEW.inventory_id;
 END$$
 

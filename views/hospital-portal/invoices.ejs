@@ -1,0 +1,308 @@
+<%# views/hospital-portal/invoices.ejs — Billing & Invoices Page %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Billing & Invoices — Goa Blood Bank</title>
+    <meta name="description" content="View and pay your blood request invoices — Goa Blood Bank Hospital Portal" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>Goa Blood Bank</h2>
+                <p><%= hospital ? hospital.name : 'Hospital Portal' %></p>
+            </div>
+            <nav class="portal-nav">
+                <a href="/hospital-portal"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                <a href="/hospital-portal/invoices" class="active"><i class="fa-solid fa-file-invoice-dollar"></i> Billing & Invoices</a>
+                <div class="nav-divider"></div>
+                <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
+                <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
+            </nav>
+            <div class="portal-footer">
+                <% if (admin) { %>
+                    <div style="margin-bottom:12px;">
+                        <div class="admin-name" style="color:#fff;"><%= admin.fullName %></div>
+                        <div class="admin-role" style="color:rgba(255,255,255,.5);"><%= admin.role %></div>
+                    </div>
+                <% } %>
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-file-invoice-dollar"></i> Billing & Invoices</h1>
+                <% if (hospital) { %>
+                    <p><i class="fa-solid fa-hospital"></i> <%= hospital.name %> &nbsp;|&nbsp; Processing Fee: ₹1,500 per unit</p>
+                <% } %>
+            </div>
+
+            <% if (success) { %>
+                <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+            <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+            <% } %>
+
+            <!-- Payment Toast (hidden by default) -->
+            <div class="billing-toast" id="paymentToast" style="display:none;">
+                <i class="fa-solid fa-circle-check"></i>
+                <span id="toastMessage">Payment successful!</span>
+            </div>
+
+            <% if (hospital) { %>
+                <!-- Summary Stats -->
+                <div class="stats-row">
+                    <div class="stat-box blue">
+                        <i class="fa-solid fa-file-invoice stat-box-icon"></i>
+                        <div class="num"><%= summary.total %></div>
+                        <div class="lbl">Total Invoices</div>
+                    </div>
+                    <div class="stat-box amber">
+                        <i class="fa-solid fa-clock stat-box-icon"></i>
+                        <div class="num">₹<%= summary.pending.toLocaleString('en-IN') %></div>
+                        <div class="lbl">Pending Amount</div>
+                    </div>
+                    <div class="stat-box green">
+                        <i class="fa-solid fa-circle-check stat-box-icon"></i>
+                        <div class="num">₹<%= summary.paid.toLocaleString('en-IN') %></div>
+                        <div class="lbl">Paid Amount</div>
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><i class="fa-solid fa-receipt"></i> All Invoices</span>
+                    </div>
+                    <% if (invoices.length === 0) { %>
+                        <div style="text-align:center;padding:40px 20px;">
+                            <i class="fa-solid fa-file-invoice" style="font-size:3rem;color:var(--text-muted);margin-bottom:12px;display:block;"></i>
+                            <p style="color:var(--text-muted);font-size:.9rem;">No invoices yet. Invoices are generated automatically when blood requests are fulfilled.</p>
+                        </div>
+                    <% } else { %>
+                        <div class="table-wrap">
+                            <table id="invoicesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Date</th>
+                                        <th>Blood Group</th>
+                                        <th>Units</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Reference</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% invoices.forEach(inv => {
+                                        const statusClass = {
+                                            Pending: 'badge-warning',
+                                            Paid: 'badge-success',
+                                            Overdue: 'badge-danger'
+                                        }[inv.status] || 'badge-gray';
+                                    %>
+                                    <tr id="invoice-row-<%= inv.invoice_id %>">
+                                        <td>
+                                            <span style="font-weight:700;color:var(--blood-light);">#INV-<%= String(inv.invoice_id).padStart(4, '0') %></span>
+                                        </td>
+                                        <td style="font-size:.82rem;color:var(--text-muted);">
+                                            <%= new Date(inv.issued_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                                        </td>
+                                        <td>
+                                            <span class="blood-badge" style="background:rgba(239,83,80,0.15);color:var(--blood-light);border:1px solid rgba(239,83,80,0.3);">
+                                                <%= inv.group_name %>
+                                            </span>
+                                        </td>
+                                        <td style="font-weight:600;"><%= inv.units_provided %></td>
+                                        <td>
+                                            <span style="font-weight:700;font-size:1rem;">₹<%= parseFloat(inv.amount).toLocaleString('en-IN') %></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge <%= statusClass %>" id="status-<%= inv.invoice_id %>"><%= inv.status %></span>
+                                        </td>
+                                        <td style="font-size:.78rem;color:var(--text-muted);">
+                                            <% if (inv.payment_reference) { %>
+                                                <span id="ref-<%= inv.invoice_id %>" title="<%= inv.payment_reference %>"><%= inv.payment_reference.substring(0, 18) %>…</span>
+                                            <% } else { %>
+                                                <span id="ref-<%= inv.invoice_id %>">—</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (inv.status === 'Pending' || inv.status === 'Overdue') { %>
+                                                <button class="btn btn-success btn-sm btn-pay-now"
+                                                        data-invoice-id="<%= inv.invoice_id %>"
+                                                        data-amount="<%= inv.amount %>"
+                                                        id="pay-btn-<%= inv.invoice_id %>">
+                                                    <i class="fa-solid fa-credit-card"></i> Pay Now
+                                                </button>
+                                            <% } else { %>
+                                                <span style="color:var(--success);font-size:.82rem;font-weight:600;">
+                                                    <i class="fa-solid fa-circle-check"></i> Paid
+                                                </span>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+                </div>
+
+                <!-- Fee Info Card -->
+                <div class="card" style="border-left:3px solid var(--info);">
+                    <div style="display:flex;align-items:flex-start;gap:14px;">
+                        <i class="fa-solid fa-circle-info" style="color:var(--info);font-size:1.3rem;margin-top:2px;"></i>
+                        <div>
+                            <strong style="color:var(--text);font-size:.9rem;">Processing & Handling Fee</strong>
+                            <p style="color:var(--text-muted);font-size:.82rem;margin-top:4px;line-height:1.6;">
+                                A flat fee of <strong style="color:var(--text);">₹1,500 per unit</strong> is charged for blood processing, testing, cross-matching, storage, and transport handling.
+                                Invoices are auto-generated upon fulfillment. Payments are processed securely via Razorpay.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            <% } %>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+    (function() {
+        const csrfToken = '<%= csrfToken %>';
+        const hospitalName = '<%= hospital ? hospital.name : "" %>';
+        const hospitalEmail = '<%= hospital ? (hospital.email || "") : "" %>';
+
+        document.querySelectorAll('.btn-pay-now').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const invoiceId = this.dataset.invoiceId;
+                const amount = this.dataset.amount;
+                const button = this;
+
+                // Disable button during processing
+                button.disabled = true;
+                button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing…';
+
+                try {
+                    // Step 1: Create Razorpay order
+                    const orderRes = await fetch('/billing/create-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({ invoice_id: invoiceId, _csrf: csrfToken })
+                    });
+
+                    const orderData = await orderRes.json();
+                    if (!orderData.success) {
+                        throw new Error(orderData.error || 'Failed to create order');
+                    }
+
+                    // Step 2: Open Razorpay checkout
+                    const options = {
+                        key: orderData.key,
+                        amount: orderData.amount,
+                        currency: orderData.currency,
+                        name: 'Goa Blood Bank',
+                        description: 'Invoice #INV-' + String(invoiceId).padStart(4, '0') + ' — Processing Fee',
+                        order_id: orderData.order_id,
+                        handler: async function(response) {
+                            // Step 3: Verify payment
+                            try {
+                                const verifyRes = await fetch('/billing/verify-payment', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-Token': csrfToken
+                                    },
+                                    body: JSON.stringify({
+                                        razorpay_order_id: response.razorpay_order_id,
+                                        razorpay_payment_id: response.razorpay_payment_id,
+                                        razorpay_signature: response.razorpay_signature,
+                                        invoice_id: invoiceId,
+                                        _csrf: csrfToken
+                                    })
+                                });
+
+                                const verifyData = await verifyRes.json();
+                                if (verifyData.success) {
+                                    // Update UI without reload
+                                    const statusEl = document.getElementById('status-' + invoiceId);
+                                    if (statusEl) {
+                                        statusEl.className = 'badge badge-success';
+                                        statusEl.textContent = 'Paid';
+                                    }
+                                    const refEl = document.getElementById('ref-' + invoiceId);
+                                    if (refEl) {
+                                        refEl.textContent = response.razorpay_payment_id.substring(0, 18) + '…';
+                                        refEl.title = response.razorpay_payment_id;
+                                    }
+                                    button.outerHTML = '<span style="color:var(--success);font-size:.82rem;font-weight:600;"><i class="fa-solid fa-circle-check"></i> Paid</span>';
+
+                                    showToast('Payment of ₹' + parseFloat(amount).toLocaleString('en-IN') + ' successful!');
+                                } else {
+                                    throw new Error(verifyData.error || 'Verification failed');
+                                }
+                            } catch (verifyErr) {
+                                showToast('Payment received but verification failed. Please refresh the page.', true);
+                                setTimeout(() => location.reload(), 3000);
+                            }
+                        },
+                        prefill: {
+                            name: hospitalName,
+                            email: hospitalEmail
+                        },
+                        theme: {
+                            color: '#B71C1C'
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pay Now';
+                            }
+                        }
+                    };
+
+                    const rzp = new Razorpay(options);
+                    rzp.on('payment.failed', function(response) {
+                        showToast('Payment failed: ' + (response.error.description || 'Unknown error'), true);
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pay Now';
+                    });
+                    rzp.open();
+
+                } catch (err) {
+                    showToast(err.message || 'Failed to initiate payment.', true);
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pay Now';
+                }
+            });
+        });
+
+        function showToast(message, isError) {
+            const toast = document.getElementById('paymentToast');
+            const msgEl = document.getElementById('toastMessage');
+            msgEl.textContent = message;
+            toast.style.display = 'flex';
+            toast.className = 'billing-toast ' + (isError ? 'toast-error' : 'toast-success');
+            toast.style.animation = 'none';
+            toast.offsetHeight; // trigger reflow
+            toast.style.animation = 'toastSlideIn 0.4s ease, toastFadeOut 0.4s ease 4s forwards';
+            setTimeout(() => { toast.style.display = 'none'; }, 4400);
+        }
+    })();
+    </script>
+</body>
+</html>

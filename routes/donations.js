@@ -50,11 +50,12 @@ router.post('/record', sanitizeBody, validateDonation, async (req, res) => {
     const { donor_id, units_donated, donated_at_location } = req.body;
     let donors = [], recent = [];
     try {
-        // Check eligibility first
-        const [[elig]] = await db.query(
-            'CALL sp_check_eligibility(?, @out); SELECT @out AS eligible;',
-            [donor_id]
-        ).catch(() => [[{ eligible: null }]]);
+        await db.query('SET @out = NULL');
+        await db.query('CALL sp_check_eligibility(?, @out)', [donor_id]);
+        const [[elig]] = await db.query('SELECT @out AS eligible');
+        if (elig?.eligible !== 1) {
+            throw new Error('Donor is not eligible to donate at this time.');
+        }
 
         // Use direct INSERT — before_donation_insert trigger will block if ineligible
         await db.query(

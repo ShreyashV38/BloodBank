@@ -6,6 +6,7 @@ import { sendOTPEmail } from './mailer.js';
 
 // In-memory OTP store  { key: { code, expiresAt, attempts } }
 const otpStore = new Map();
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Cleanup expired OTPs every 5 minutes
 setInterval(() => {
@@ -46,22 +47,23 @@ export function generateOTP(key, email = null, purpose = 'verification', ttlMs =
             : Date.now()
     });
 
-    // ── Console log (always, for dev convenience) ────────────
-    console.log('');
-    console.log('╔══════════════════════════════════════════╗');
-    console.log('║       📱 OTP GENERATED                   ║');
-    console.log('╠══════════════════════════════════════════╣');
-    console.log(`║  To:   ${key.padEnd(33)}║`);
-    console.log(`║  Code: ${code.padEnd(33)}║`);
-    console.log(`║  Expires in: ${Math.round(ttlMs / 60000)} minutes${' '.repeat(20)}║`);
-    console.log('╚══════════════════════════════════════════╝');
-    console.log('');
+    if (!isProduction) {
+        console.log('');
+        console.log('╔══════════════════════════════════════════╗');
+        console.log('║       📱 OTP GENERATED                   ║');
+        console.log('╠══════════════════════════════════════════╣');
+        console.log(`║  To:   ${key.padEnd(33)}║`);
+        console.log(`║  Code: ${code.padEnd(33)}║`);
+        console.log(`║  Expires in: ${Math.round(ttlMs / 60000)} minutes${' '.repeat(20)}║`);
+        console.log('╚══════════════════════════════════════════╝');
+        console.log('');
+    }
 
     // ── Send via email (non-blocking) ────────────────────────
     if (email) {
         sendOTPEmail(email, code, purpose, Math.round(ttlMs / 60000))
             .then(sent => {
-                if (sent) console.log(`📧 OTP emailed to ${email}`);
+                if (sent && !isProduction) console.log(`📧 OTP emailed to ${email}`);
             })
             .catch(err => console.error('Email send error:', err.message));
     }

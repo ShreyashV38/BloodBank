@@ -7,6 +7,12 @@ import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
 import { doubleCsrf } from 'csrf-csrf';
 
+if (process.env.NODE_ENV === 'production' && !process.env.CSRF_SECRET) {
+    console.error('FATAL ERROR: CSRF_SECRET environment variable is missing.');
+    process.exit(1);
+}
+
+const csrfSecret = process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'csrf_fallback_secret_change_in_development';
 
 // ── Helmet — Security Headers ────────────────────────────────
 export const helmetMiddleware = helmet({
@@ -15,9 +21,10 @@ export const helmetMiddleware = helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"]
+            connectSrc: ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
+            frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"]
         }
     },
     crossOriginEmbedderPolicy: false
@@ -25,7 +32,7 @@ export const helmetMiddleware = helmet({
 
 // ── CSRF Protection (Double-Submit Cookie) ───────────────────
 const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'csrf_fallback_secret_change_in_production',
+    getSecret: () => csrfSecret,
     getSessionIdentifier: (req) => req.sessionID || 'no-session',
     cookieName: '__csrf_token',
     cookieOptions: {

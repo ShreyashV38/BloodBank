@@ -29,6 +29,7 @@ import donorPortalRouter from './routes/donor-portal.js';
 import ngoPortalRouter from './routes/ngo-portal.js';
 import campsRouter from './routes/camps.js';
 import adminRouter from './routes/admin.js';
+import billingRouter from './routes/billing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -144,7 +145,7 @@ app.use((req, res, next) => {
     // Allow authenticated users to change their password or edit their profile
     if (reqPath === '/change-password' || reqPath.startsWith('/profile')) return next();
 
-    if (role === 'Hospital' && (reqPath.startsWith('/hospital-portal') || reqPath === '/logout')) return next();
+    if (role === 'Hospital' && (reqPath.startsWith('/hospital-portal') || reqPath.startsWith('/billing') || reqPath === '/logout')) return next();
     if (role === 'Donor' && (reqPath.startsWith('/donor-portal') || reqPath === '/logout')) return next();
     if (role === 'NGO' && (reqPath.startsWith('/ngo-portal') || reqPath === '/logout')) return next();
 
@@ -169,6 +170,7 @@ app.use('/hospital-portal', hospitalPortalRouter);
 app.use('/donor-portal', donorPortalRouter);
 app.use('/ngo-portal', ngoPortalRouter);
 app.use('/admin', adminRouter);
+app.use('/billing', billingRouter);
 
 // ── Dashboard (admin/staff) ─────────────────────────────────
 app.get('/dashboard', async (req, res) => {
@@ -178,6 +180,10 @@ app.get('/dashboard', async (req, res) => {
         const [[pendingCount]] = await db.query("SELECT COUNT(*) as total FROM blood_request WHERE status='Pending'");
         const [[hospCount]] = await db.query('SELECT COUNT(*) as total FROM hospital');
         const [[campCount]] = await db.query("SELECT COUNT(*) as total FROM donation_camp WHERE status IN ('Upcoming','Ongoing')");
+
+        // Revenue metrics
+        const [[revenueData]] = await db.query("SELECT COALESCE(SUM(amount), 0) as total FROM invoice WHERE status = 'Paid'");
+        const [[pendingPayments]] = await db.query("SELECT COALESCE(SUM(amount), 0) as total FROM invoice WHERE status = 'Pending'");
 
         // Recent activity for feed
         const [recentActivity] = await db.query(`
@@ -206,7 +212,9 @@ app.get('/dashboard', async (req, res) => {
             pendingRequests: pendingCount.total,
             totalHospitals: hospCount.total,
             activeCamps: campCount.total,
-            recentActivity
+            recentActivity,
+            totalRevenue: revenueData.total,
+            pendingPayments: pendingPayments.total
         });
     } catch (err) {
         console.error(err);

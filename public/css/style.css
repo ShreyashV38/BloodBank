@@ -18,6 +18,9 @@
   --bg-card: #1A1A1A;
   --bg-elevated: #222222;
   --bg-hover: #2A2A2A;
+  --bg-ambient-1: rgba(183, 28, 28, 0.18);
+  --bg-ambient-2: rgba(33, 150, 243, 0.12);
+  --bg-ambient-3: rgba(255, 138, 128, 0.08);
 
   /* Sidebar */
   --sidebar-bg: linear-gradient(180deg, #1A0000 0%, #0D0D0D 100%);
@@ -81,11 +84,28 @@ html {
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-darkest);
+  background:
+    radial-gradient(900px 500px at -10% -10%, var(--bg-ambient-1), transparent 65%),
+    radial-gradient(900px 500px at 110% 0%, var(--bg-ambient-2), transparent 60%),
+    radial-gradient(700px 400px at 50% 120%, var(--bg-ambient-3), transparent 60%),
+    linear-gradient(180deg, #101014 0%, #0d0d0d 100%);
   color: var(--text);
   display: flex;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.02), transparent 40%);
+  z-index: -1;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────── */
@@ -294,16 +314,16 @@ body {
 }
 
 .top-bar {
-  background: var(--bg-dark);
+  background: rgba(18, 18, 18, 0.65);
   padding: 16px 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: sticky;
   top: 0;
   z-index: 50;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px) saturate(120%);
 }
 
 .page-title {
@@ -330,21 +350,24 @@ body {
 .content-wrapper {
   padding: 28px 32px;
   flex: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 35%);
 }
 
 /* ── CARDS ────────────────────────────────────────────────── */
 .card {
-  background: var(--bg-card);
+  background: linear-gradient(160deg, rgba(30, 30, 34, 0.92), rgba(24, 24, 28, 0.92));
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 24px;
   margin-bottom: 20px;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .card:hover {
-  border-color: rgba(183, 28, 28, 0.3);
-  box-shadow: var(--shadow-sm);
+  border-color: rgba(239, 83, 80, 0.35);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+  transform: translateY(-1px);
 }
 
 .card-header {
@@ -378,9 +401,9 @@ body {
 }
 
 .stat-card {
-  background: var(--bg-card);
+  background: linear-gradient(160deg, rgba(30, 30, 34, 0.9), rgba(24, 24, 28, 0.9));
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 20px;
   display: flex;
   align-items: center;
@@ -839,9 +862,12 @@ tbody tr:hover {
   justify-content: center;
   min-height: 100vh;
   width: 100%;
-  background: radial-gradient(ellipse at 30% 50%, rgba(127, 0, 0, 0.15), transparent 60%),
-    radial-gradient(ellipse at 70% 80%, rgba(183, 28, 28, 0.08), transparent 50%),
-    var(--bg-darkest);
+  background:
+    linear-gradient(115deg, rgba(24, 0, 0, 0.35), rgba(8, 8, 12, 0.58)),
+    url("https://images.unsplash.com/photo-1612277795421-9bc7706a4a15?auto=format&fit=crop&w=1920&q=80");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
   position: relative;
   overflow: hidden;
 }
@@ -849,39 +875,26 @@ tbody tr:hover {
 .login-page::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 50% 50%, rgba(183, 28, 28, 0.03), transparent 40%);
-  animation: float-bg 20s ease-in-out infinite;
-}
-
-@keyframes float-bg {
-
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-
-  33% {
-    transform: translate(3%, -3%) rotate(2deg);
-  }
-
-  66% {
-    transform: translate(-2%, 2%) rotate(-1deg);
-  }
+  inset: 0;
+  background:
+    radial-gradient(780px 420px at 50% 50%, rgba(170, 20, 20, 0.18), transparent 65%),
+    linear-gradient(105deg, rgba(107, 0, 0, 0.35), rgba(26, 0, 0, 0.62));
+  z-index: 0;
 }
 
 .login-card {
-  background: rgba(26, 26, 26, 0.9);
-  backdrop-filter: blur(20px);
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(183, 28, 28, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 48px 40px;
   width: 420px;
   max-width: 95%;
-  box-shadow: var(--shadow-lg), 0 0 60px rgba(183, 28, 28, 0.1);
+  box-shadow:
+    0 12px 42px rgba(0, 0, 0, 0.45),
+    inset 0 0 32px rgba(255, 255, 255, 0.06),
+    0 0 38px rgba(139, 0, 0, 0.16);
   position: relative;
   z-index: 1;
 }
@@ -1103,12 +1116,16 @@ tbody tr:hover {
 .portal-wrap {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-darkest);
+  background:
+    radial-gradient(900px 500px at 100% -10%, rgba(33, 150, 243, 0.07), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(183, 28, 28, 0.12), transparent 65%),
+    var(--bg-darkest);
 }
 
 .portal-sidebar {
   width: 260px;
-  background: linear-gradient(180deg, var(--blood-deep), #1A0000);
+  background:
+    linear-gradient(180deg, rgba(92, 10, 10, 0.96), rgba(26, 0, 0, 0.96));
   color: #fff;
   flex-shrink: 0;
   display: flex;
@@ -1196,6 +1213,7 @@ tbody tr:hover {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 30%);
 }
 
 .portal-header {
@@ -1479,160 +1497,13 @@ tbody tr:hover {
 
 /* ── FLOATING BLOOD CELLS (CSS-only animation) ───────────── */
 .blood-cells {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.blood-cell {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 35% 35%, rgba(239, 83, 80, 0.0), rgba(183, 28, 28, 0.35) 45%, rgba(127, 0, 0, 0.25) 70%, transparent 100%);
-  box-shadow: inset -3px -3px 8px rgba(92, 10, 10, 0.4), 0 0 20px rgba(183, 28, 28, 0.1);
-  animation: floatCell linear infinite;
-}
-
-.blood-cell::after {
-  content: '';
-  position: absolute;
-  top: 30%;
-  left: 25%;
-  width: 35%;
-  height: 25%;
-  background: radial-gradient(ellipse, rgba(255, 138, 128, 0.3), transparent);
-  border-radius: 50%;
-}
-
-@keyframes floatCell {
-  0% {
-    transform: translateY(110vh) translateX(0) rotate(0deg) scale(1);
-    opacity: 0;
-  }
-
-  5% {
-    opacity: 1;
-  }
-
-  95% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(-10vh) translateX(80px) rotate(360deg) scale(0.9);
-    opacity: 0;
-  }
-}
-
-/* Generate multiple cells with varied sizes, positions, speeds */
-.blood-cell:nth-child(1) {
-  width: 22px;
-  height: 22px;
-  left: 5%;
-  animation-duration: 18s;
-  animation-delay: 0s;
-}
-
-.blood-cell:nth-child(2) {
-  width: 16px;
-  height: 16px;
-  left: 15%;
-  animation-duration: 22s;
-  animation-delay: 2s;
-  opacity: 0.5;
-}
-
-.blood-cell:nth-child(3) {
-  width: 28px;
-  height: 28px;
-  left: 25%;
-  animation-duration: 16s;
-  animation-delay: 4s;
-}
-
-.blood-cell:nth-child(4) {
-  width: 12px;
-  height: 12px;
-  left: 35%;
-  animation-duration: 25s;
-  animation-delay: 1s;
-  opacity: 0.4;
-}
-
-.blood-cell:nth-child(5) {
-  width: 20px;
-  height: 20px;
-  left: 45%;
-  animation-duration: 20s;
-  animation-delay: 3s;
-}
-
-.blood-cell:nth-child(6) {
-  width: 14px;
-  height: 14px;
-  left: 55%;
-  animation-duration: 24s;
-  animation-delay: 5s;
-  opacity: 0.5;
-}
-
-.blood-cell:nth-child(7) {
-  width: 26px;
-  height: 26px;
-  left: 65%;
-  animation-duration: 17s;
-  animation-delay: 0.5s;
-}
-
-.blood-cell:nth-child(8) {
-  width: 10px;
-  height: 10px;
-  left: 75%;
-  animation-duration: 28s;
-  animation-delay: 6s;
-  opacity: 0.3;
-}
-
-.blood-cell:nth-child(9) {
-  width: 18px;
-  height: 18px;
-  left: 85%;
-  animation-duration: 21s;
-  animation-delay: 2.5s;
-}
-
-.blood-cell:nth-child(10) {
-  width: 24px;
-  height: 24px;
-  left: 92%;
-  animation-duration: 19s;
-  animation-delay: 4.5s;
-}
-
-.blood-cell:nth-child(11) {
-  width: 15px;
-  height: 15px;
-  left: 10%;
-  animation-duration: 26s;
-  animation-delay: 7s;
-  opacity: 0.4;
-}
-
-.blood-cell:nth-child(12) {
-  width: 20px;
-  height: 20px;
-  left: 50%;
-  animation-duration: 23s;
-  animation-delay: 8s;
+  display: none;
 }
 
 /* Strengthen login card glassmorphism over the cells */
 .login-page .login-card {
   position: relative;
-  z-index: 2;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  z-index: 3;
   animation: cardAppear 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1653,8 +1524,9 @@ tbody tr:hover {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
-  z-index: 1;
+  background:
+    radial-gradient(ellipse at center, transparent 48%, rgba(0, 0, 0, 0.52) 100%);
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -1706,8 +1578,10 @@ tbody tr:hover {
 
 /* ── WELCOME HERO ────────────────────────────────────────── */
 .welcome-hero {
-  background: linear-gradient(135deg, rgba(127, 0, 0, 0.2), rgba(183, 28, 28, 0.1));
-  border: 1px solid rgba(183, 28, 28, 0.2);
+  background:
+    radial-gradient(circle at 85% 15%, rgba(239, 83, 80, 0.15), transparent 35%),
+    linear-gradient(135deg, rgba(127, 0, 0, 0.28), rgba(183, 28, 28, 0.12));
+  border: 1px solid rgba(239, 83, 80, 0.28);
   border-radius: var(--radius-xl);
   padding: 28px 32px;
   margin-bottom: 24px;
@@ -2166,6 +2040,125 @@ tbody tr:hover {
   background: rgba(255, 255, 255, 0.08);
   margin: 8px 22px;
 }
+
+/* ── BILLING & INVOICES ─────────────────────────────────── */
+
+/* Purple stat icon (Total Revenue) */
+.stat-icon.purple {
+  background: rgba(156, 39, 176, 0.1);
+  color: #CE93D8;
+  border: 1px solid rgba(156, 39, 176, 0.25);
+}
+
+.stat-card:has(.stat-icon.purple)::before {
+  background: linear-gradient(90deg, #9C27B0, transparent);
+}
+
+/* Teal stat icon (Pending Payments) */
+.stat-icon.teal {
+  background: rgba(0, 150, 136, 0.1);
+  color: #4DB6AC;
+  border: 1px solid rgba(0, 150, 136, 0.25);
+}
+
+.stat-card:has(.stat-icon.teal)::before {
+  background: linear-gradient(90deg, #009688, transparent);
+}
+
+/* Billing Toast Notification */
+.billing-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-radius: var(--radius-lg);
+  font-size: .875rem;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: toastSlideIn 0.4s ease, toastFadeOut 0.4s ease 4s forwards;
+}
+
+.billing-toast.toast-success {
+  background: linear-gradient(135deg, #1B5E20, #2E7D32);
+  color: #A5D6A7;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.billing-toast.toast-success i {
+  color: #4CAF50;
+  font-size: 1.2rem;
+}
+
+.billing-toast.toast-error {
+  background: linear-gradient(135deg, #B71C1C, #C62828);
+  color: #EF9A9A;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.billing-toast.toast-error i {
+  color: #F44336;
+  font-size: 1.2rem;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(60px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+
+/* Pay Now button loading state */
+.btn-pay-now:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-pay-now .fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Portal billing nav active state */
+.portal-nav a.active {
+  background: rgba(183, 28, 28, 0.2);
+  color: var(--blood-light);
+  font-weight: 600;
+  border-left: 3px solid var(--blood-primary);
+}
+
+/* Invoice row hover highlight */
+#invoicesTable tbody tr {
+  transition: all var(--transition);
+}
+
+#invoicesTable tbody tr:hover {
+  background: rgba(183, 28, 28, 0.06);
+}
+
 
 /* ── SIGNUP FORM UI ────────────────────────────────────────── */
 .role-fields {
