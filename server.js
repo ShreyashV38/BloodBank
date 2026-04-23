@@ -101,6 +101,13 @@ app.use(session({
 import crypto from 'crypto';
 
 // ── Custom Session-Based CSRF & Auto-Injector ───────────────────
+// These paths POST without a session (login, signup, OTP) — skip CSRF for them
+const CSRF_EXEMPT_PATHS = [
+    '/login', '/signup', '/forgot-password',
+    '/verify-login-otp', '/verify-signup-otp', '/verify-reset-otp',
+    '/reset-password', '/resend-otp'
+];
+
 app.use((req, res, next) => {
     // 1. Generate or retrieve session CSRF token
     if (!req.session.csrfToken) {
@@ -109,27 +116,36 @@ app.use((req, res, next) => {
     const token = req.session.csrfToken;
     res.locals.csrfToken = token;
 
-    // 2. Validate POST requests
-    if (req.method === 'POST') {
-        const incomingToken = req.body && req.body._csrf ? req.body._csrf : req.headers['x-csrf-token'];
+    // 2. Validate POST requests (skip public auth routes)
+    if (req.method === 'POST' && !CSRF_EXEMPT_PATHS.includes(req.path)) {
+        let incomingToken = (req.body && req.body._csrf) ? req.body._csrf : req.headers['x-csrf-token'];
+        // If form was double-injected, _csrf may arrive as an array — take first element
+        if (Array.isArray(incomingToken)) incomingToken = incomingToken[0];
         if (!incomingToken || incomingToken !== token) {
-            console.warn('[CSRF WARNING] Invalid or missing token, but allowing request in development mode.');
-            // return res.status(403).render('error', {
-            //     title: 'Forbidden',
-            //     code: 403,
-            //     message: 'Invalid or missing CSRF token. Please refresh or log in again.',
-            //     layout: false
-            // });
+            console.warn('[CSRF BLOCK]', req.path, '| got:', incomingToken?.slice(0, 10), '| expected:', token?.slice(0, 10));
+            return res.status(403).render('error', {
+                title: 'Forbidden',
+                code: 403,
+                message: 'Invalid or missing CSRF token. Please refresh the page and try again.',
+                layout: false
+            });
         }
     }
 
-    // 3. Auto-Inject into HTML forms
+    // 3. Auto-Inject _csrf into ALL HTML forms — skip if already injected
     try {
         const originalSend = res.send;
         res.send = function (body) {
-            if (typeof body === 'string' && body.includes('<form ')) {
+            if (typeof body === 'string' && body.includes('<form')) {
                 const csrfInput = `<input type="hidden" name="_csrf" value="${token}">`;
-                body = body.replace(/(<form[^>]*method="POST"[^>]*>)/gi, `$1\n${csrfInput}`);
+                // Only inject into forms that don't already contain a _csrf field
+                body = body.replace(/(<form\b[^>]*>)/gi, (match) => {
+                    // Look ahead: if the next ~300 chars already have _csrf, skip
+                    const idx = body.indexOf(match);
+                    const ahead = body.slice(idx, idx + 300);
+                    if (ahead.includes('name="_csrf"')) return match;
+                    return `${match}\n${csrfInput}`;
+                });
             }
             return originalSend.call(this, body);
         };

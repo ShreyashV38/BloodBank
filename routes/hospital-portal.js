@@ -160,12 +160,15 @@ router.get('/appointments', requireHospital, async (req, res) => {
         const hospital = hospitals[0];
 
         const [appointments] = await pool.query(`
-            SELECT a.*, d.first_name, d.last_name, d.phone, bg.group_name
+            SELECT a.*, d.first_name, d.last_name, d.phone, bg.group_name,
+                   CASE WHEN a.scheduled_date < CURDATE() THEN 'overdue'
+                        WHEN a.scheduled_date = CURDATE() THEN 'today'
+                        ELSE 'upcoming' END AS timing
             FROM appointment a
             JOIN donor d ON a.donor_id = d.donor_id
             JOIN blood_group bg ON d.blood_group_id = bg.blood_group_id
-            WHERE a.location = ? AND a.scheduled_date <= CURDATE() AND a.status = 'Scheduled'
-            ORDER BY a.scheduled_date ASC
+            WHERE a.location = ? AND a.status = 'Scheduled'
+            ORDER BY a.scheduled_date ASC, a.time_slot ASC
         `, [hospital.name]);
 
         res.render('hospital-portal/appointments', {

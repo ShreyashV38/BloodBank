@@ -20,6 +20,9 @@ pids
 *.seed
 *.pid.lock
 
+# Project documentation
+docs/
+
 # OS / Editor generated
 .DS_Store
 .vscode/

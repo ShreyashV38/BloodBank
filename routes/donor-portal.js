@@ -208,29 +208,375 @@ router.get('/certificate/:id', requireDonor, validateParamId(), async (req, res)
         }
 
         const d = donation[0];
-        const dateStr = new Date(d.donation_date).toLocaleDateString();
+        const dateStr = new Date(d.donation_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        const certNo  = `BSYNC-${String(d.donation_id).padStart(5, '0')}-${new Date().getFullYear()}`;
 
-        const markdown = `
-# <center>Certificate of Appreciation</center>
-***
-<br><br>
-### <center>Awarded to</center>
-## <center>**${donor.first_name} ${donor.last_name}**</center>
-<br>
-<center>For the selfless act of donating **${d.units_donated} units** of **${d.group_name}** blood on **${dateStr}** at **${d.donated_at_location}**.</center>
-<br><br>
-<center>Your generosity helps save lives and gives hope to those in need.</center>
-<br><br><br>
-<center>___________________________</center>
-<center>**BloodSync Director**</center>
-        `;
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
 
-        const pdf = await mdToPdf({ content: markdown }, { 
-            pdf_options: { format: 'A4', orientation: 'landscape', margin: { top: '30mm', bottom: '30mm', right: '30mm', left: '30mm' } }
-        });
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #fff;
+    width: 297mm;
+    height: 210mm;
+    overflow: hidden;
+  }
+
+  .page {
+    width: 297mm;
+    height: 210mm;
+    position: relative;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top red accent band */
+  .top-band {
+    width: 100%;
+    height: 14mm;
+    background: linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #e53935 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.9);
+    font-family: Arial, sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .band-dot { width:5px; height:5px; border-radius:50%; background: rgba(255,255,255,0.6); }
+
+  /* Bottom band */
+  .bottom-band {
+    width: 100%;
+    height: 10mm;
+    background: linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #e53935 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20mm;
+    margin-top: auto;
+  }
+
+  .bottom-band span {
+    font-family: Arial, sans-serif;
+    font-size: 8px;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Main content area */
+  .content {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Left red sidebar */
+  .sidebar {
+    width: 18mm;
+    background: linear-gradient(180deg, #c62828, #b71c1c);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10mm 0;
+  }
+
+  .sidebar-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: Arial, sans-serif;
+    font-size: 7px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .sidebar-line {
+    width: 1px;
+    height: 30mm;
+    background: rgba(255,255,255,0.25);
+  }
+
+  /* Watermark */
+  .watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-40%, -50%) rotate(-20deg);
+    font-family: Arial, sans-serif;
+    font-size: 90px;
+    font-weight: 900;
+    color: rgba(198, 40, 40, 0.04);
+    letter-spacing: -2px;
+    text-transform: uppercase;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 0;
+  }
+
+  /* SVG corner ornament */
+  .corner {
+    position: absolute;
+    width: 28mm;
+    height: 28mm;
+    opacity: 0.12;
+  }
+  .corner.tl { top: 0; left: 18mm; }
+  .corner.tr { top: 0; right: 0; transform: scaleX(-1); }
+  .corner.bl { bottom: 10mm; left: 18mm; transform: scaleY(-1); }
+  .corner.br { bottom: 10mm; right: 0; transform: scale(-1,-1); }
+
+  /* Main body */
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8mm 16mm 6mm 12mm;
+    position: relative;
+    z-index: 1;
+  }
+
+  .eyebrow {
+    font-family: Arial, sans-serif;
+    font-size: 8px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #c62828;
+    font-weight: 600;
+    margin-bottom: 5mm;
+  }
+
+  /* Decorative line with diamond */
+  .deco-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5mm;
+    width: 120mm;
+  }
+  .deco-line hr { flex:1; border:none; border-top: 1.5px solid #c62828; opacity:0.4; }
+  .diamond {
+    width: 7px; height: 7px;
+    background: #c62828;
+    transform: rotate(45deg);
+  }
+
+  .cert-title {
+    font-family: Georgia, serif;
+    font-size: 34px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-align: center;
+    line-height: 1.15;
+    margin-bottom: 2mm;
+  }
+
+  .presented-to {
+    font-family: Arial, sans-serif;
+    font-size: 8px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 2mm;
+  }
+
+  .donor-name {
+    font-family: Georgia, serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #c62828;
+    text-align: center;
+    margin-bottom: 5mm;
+    border-bottom: 1.5px solid rgba(198,40,40,0.2);
+    padding-bottom: 3mm;
+    width: 140mm;
+    text-align: center;
+  }
+
+  .body-text {
+    font-family: Arial, sans-serif;
+    font-size: 10.5px;
+    color: #555;
+    text-align: center;
+    line-height: 1.9;
+    max-width: 140mm;
+    margin-bottom: 6mm;
+  }
+  .body-text b { color: #1a1a1a; font-weight: 600; }
+
+  /* Metadata pills */
+  .meta-row {
+    display: flex;
+    gap: 8mm;
+    margin-bottom: 6mm;
+  }
+  .meta-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: rgba(198,40,40,0.07);
+    border: 1px solid rgba(198,40,40,0.2);
+    border-radius: 8px;
+    padding: 4px 14px;
+  }
+  .meta-pill .pill-label {
+    font-family: Arial, sans-serif;
+    font-size: 7px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #aaa;
+  }
+  .meta-pill .pill-value {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #c62828;
+  }
+
+  /* Signature row */
+  .sig-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+    padding-top: 4mm;
+    border-top: 1px solid #eee;
+    margin-top: auto;
+  }
+  .sig-block { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .sig-line { width:100px; height:1px; background:#555; }
+  .sig-label { font-family:Arial,sans-serif; font-size:7px; letter-spacing:2px; text-transform:uppercase; color:#999; }
+  .cert-no { font-family:Arial,sans-serif; font-size:7.5px; color:#ccc; letter-spacing:1.5px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Top Band -->
+  <div class="top-band">
+    <div class="band-dot"></div>
+    BLOODSYNC — BLOOD BANK MANAGEMENT SYSTEM
+    <div class="band-dot"></div>
+  </div>
+
+  <!-- Content area -->
+  <div class="content">
+
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-line"></div>
+      <div class="sidebar-text">Certificate of Appreciation</div>
+      <div class="sidebar-line"></div>
+    </div>
+
+    <!-- Watermark -->
+    <div class="watermark">BLOODSYNC</div>
+
+    <!-- Corner ornaments (SVG) -->
+    <svg class="corner tl" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 L40,0 L40,5 L5,5 L5,40 L0,40 Z" fill="#c62828"/>
+      <path d="M10,10 L30,10 L30,14 L14,14 L14,30 L10,30 Z" fill="#c62828"/>
+      <circle cx="5" cy="5" r="3" fill="#c62828"/>
+    </svg>
+    <svg class="corner tr" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 L40,0 L40,5 L5,5 L5,40 L0,40 Z" fill="#c62828"/>
+      <path d="M10,10 L30,10 L30,14 L14,14 L14,30 L10,30 Z" fill="#c62828"/>
+      <circle cx="5" cy="5" r="3" fill="#c62828"/>
+    </svg>
+    <svg class="corner bl" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 L40,0 L40,5 L5,5 L5,40 L0,40 Z" fill="#c62828"/>
+      <path d="M10,10 L30,10 L30,14 L14,14 L14,30 L10,30 Z" fill="#c62828"/>
+      <circle cx="5" cy="5" r="3" fill="#c62828"/>
+    </svg>
+    <svg class="corner br" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 L40,0 L40,5 L5,5 L5,40 L0,40 Z" fill="#c62828"/>
+      <path d="M10,10 L30,10 L30,14 L14,14 L14,30 L10,30 Z" fill="#c62828"/>
+      <circle cx="5" cy="5" r="3" fill="#c62828"/>
+    </svg>
+
+    <!-- Main Body -->
+    <div class="body">
+      <div class="eyebrow">&#9670; Certificate of Appreciation &#9670;</div>
+
+      <div class="deco-line">
+        <hr/><div class="diamond"></div><hr/>
+      </div>
+
+      <div class="cert-title">Blood Donation<br>Certificate</div>
+
+      <div class="presented-to">Proudly Presented To</div>
+
+      <div class="donor-name">${donor.first_name} ${donor.last_name}</div>
+
+      <!-- Metadata pills -->
+      <div class="meta-row">
+        <div class="meta-pill">
+          <div class="pill-label">Blood Group</div>
+          <div class="pill-value">${d.group_name}</div>
+        </div>
+        <div class="meta-pill">
+          <div class="pill-label">Units Donated</div>
+          <div class="pill-value">${d.units_donated} U</div>
+        </div>
+        <div class="meta-pill">
+          <div class="pill-label">Date</div>
+          <div class="pill-value">${dateStr}</div>
+        </div>
+      </div>
+
+      <p class="body-text">
+        In recognition of the selfless act of blood donation at
+        <b>${d.donated_at_location || 'BloodSync Partner Centre'}</b>.
+        Your contribution directly saves lives and strengthens our healthcare community.
+      </p>
+
+      <div class="sig-row">
+        <div class="cert-no">CERT: ${certNo}</div>
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div class="sig-label">BloodSync &mdash; Authorised Signatory</div>
+        </div>
+        <div class="cert-no">ISSUED: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}).toUpperCase()}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Band -->
+  <div class="bottom-band">
+    <span>www.bloodsync.org</span>
+    <span>&#9670; Saving Lives Together &#9670;</span>
+    <span>Goa, India</span>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+
+
+        const pdf = await mdToPdf(
+            { content: html.replace(/^\s+/gm, '') },
+            { pdf_options: { format: 'A4', landscape: true, margin: { top: '8mm', bottom: '8mm', left: '8mm', right: '8mm' }, printBackground: true } }
+        );
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="Donation_Certificate_${d.donation_id}.pdf"`);
+        res.setHeader('Content-Disposition', `inline; filename="BloodSync_Certificate_${certNo}.pdf"`);
         res.send(Buffer.from(pdf.content));
 
     } catch (err) {

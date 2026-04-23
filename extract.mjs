@@ -1,12 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
+import AdmZip from 'adm-zip';
 
 function readDocx(filePath) {
     return new Promise((resolve, reject) => {
         fs.readFile(filePath, (err, data) => {
             if (err) return reject(err);
-            const AdmZip = require('adm-zip');
             const zip = new AdmZip(data);
             const docXml = zip.readAsText('word/document.xml');
             

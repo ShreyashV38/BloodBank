@@ -68,8 +68,8 @@ export const generalLimiter = rateLimit({
 // ── Input Sanitizer — strip dangerous HTML securely ──────────
 export function sanitizeBody(req, res, next) {
     if (req.body && typeof req.body === 'object') {
-        // Skip password fields (passwords can contain <, >, & etc.)
-        const skipFields = ['password', 'confirm_password', 'current_password', 'new_password'];
+        // Skip password fields and the CSRF token (sanitizing the token would corrupt it)
+        const skipFields = ['password', 'confirm_password', 'current_password', 'new_password', '_csrf'];
         for (const key of Object.keys(req.body)) {
             if (skipFields.includes(key)) continue;
             if (typeof req.body[key] === 'string') {
