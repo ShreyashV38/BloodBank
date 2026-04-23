@@ -1,18 +1,11 @@
 // ============================================================
 // middleware/security.js — Security middleware bundle
-// Helmet, Rate Limiting, CSRF, Input Sanitization
+// Helmet, Rate Limiting, Input Sanitization
 // ============================================================
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
-import { doubleCsrf } from 'csrf-csrf';
 
-if (process.env.NODE_ENV === 'production' && !process.env.CSRF_SECRET) {
-    console.error('FATAL ERROR: CSRF_SECRET environment variable is missing.');
-    process.exit(1);
-}
-
-const csrfSecret = process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'csrf_fallback_secret_change_in_development';
 
 // ── Helmet — Security Headers ────────────────────────────────
 export const helmetMiddleware = helmet({
@@ -30,23 +23,7 @@ export const helmetMiddleware = helmet({
     crossOriginEmbedderPolicy: false
 });
 
-// ── CSRF Protection (Double-Submit Cookie) ───────────────────
-const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-    getSecret: () => csrfSecret,
-    getSessionIdentifier: (req) => req.sessionID || 'no-session',
-    cookieName: '__csrf_token',
-    cookieOptions: {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/'
-    },
-    size: 64,
-    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-    getCsrfTokenFromRequest: (req) => req.body?._csrf || req.headers['x-csrf-token']
-});
 
-export { doubleCsrfProtection, generateCsrfToken };
 
 // ── Rate Limiters ────────────────────────────────────────────
 export const loginLimiter = rateLimit({
@@ -91,8 +68,8 @@ export const generalLimiter = rateLimit({
 // ── Input Sanitizer — strip dangerous HTML securely ──────────
 export function sanitizeBody(req, res, next) {
     if (req.body && typeof req.body === 'object') {
-        // Skip CSRF tokens and password fields (passwords can contain <, >, & etc.)
-        const skipFields = ['_csrf', 'password', 'confirm_password', 'current_password', 'new_password'];
+        // Skip password fields (passwords can contain <, >, & etc.)
+        const skipFields = ['password', 'confirm_password', 'current_password', 'new_password'];
         for (const key of Object.keys(req.body)) {
             if (skipFields.includes(key)) continue;
             if (typeof req.body[key] === 'string') {

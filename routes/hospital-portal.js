@@ -112,7 +112,7 @@ router.get('/invoices', requireHospital, async (req, res) => {
                 invoices: [], summary: { total: 0, pending: 0, paid: 0 },
                 admin: { fullName: req.session.fullName, role: req.session.role },
                 success: null, error: 'No hospital linked to this account.',
-                csrfToken: res.locals.csrfToken,
+
                 layout: false
             });
         }
@@ -141,7 +141,7 @@ router.get('/invoices', requireHospital, async (req, res) => {
             admin: { fullName: req.session.fullName, role: req.session.role },
             success: req.query.success || null,
             error: req.query.error || null,
-            csrfToken: res.locals.csrfToken,
+
             layout: false
         });
     } catch (err) {

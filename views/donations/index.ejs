@@ -19,8 +19,7 @@ function bloodClass(g) {
         <span style="font-size:.8rem;color:var(--text-muted)">Triggers will auto-update inventory & donor eligibility</span>
     </div>
     <form method="POST" action="/donations/record">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <div class="form-grid">
+<div class="form-grid">
             <div class="form-group">
                 <label>Select Donor *</label>
                 <select name="donor_id" required>

@@ -180,7 +180,7 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
     (function() {
-        const csrfToken = '<%= csrfToken %>';
+
         const hospitalName = '<%= hospital ? hospital.name : "" %>';
         const hospitalEmail = '<%= hospital ? (hospital.email || "") : "" %>';
 
@@ -199,10 +199,9 @@
                     const orderRes = await fetch('/billing/create-order', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': csrfToken
+                            'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ invoice_id: invoiceId, _csrf: csrfToken })
+                        body: JSON.stringify({ invoice_id: invoiceId })
                     });
 
                     const orderData = await orderRes.json();
@@ -224,15 +223,13 @@
                                 const verifyRes = await fetch('/billing/verify-payment', {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-Token': csrfToken
+                                        'Content-Type': 'application/json'
                                     },
                                     body: JSON.stringify({
                                         razorpay_order_id: response.razorpay_order_id,
                                         razorpay_payment_id: response.razorpay_payment_id,
                                         razorpay_signature: response.razorpay_signature,
-                                        invoice_id: invoiceId,
-                                        _csrf: csrfToken
+                                        invoice_id: invoiceId
                                     })
                                 });
 

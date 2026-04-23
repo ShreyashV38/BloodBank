@@ -14,8 +14,7 @@
                             <span class="card-title"><i class="fa-solid fa-plus"></i> Raise New Blood Request</span>
                         </div>
                         <form method="POST" action="/requests/add">
-                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                            <div class="form-grid">
+<div class="form-grid">
                                 <div class="form-group">
                                     <label>Hospital *</label>
                                     <select name="hospital_id" required>
@@ -118,17 +117,17 @@
                                                             Date(r.required_by_date).toDateString() : '—' %>
                                                     </td>
                                                     <td>
-                                                        <!-- Approve Modal Trigger -->
-                                                        <button type="button" class="btn btn-success btn-sm"
-                                                            onclick="openApprove(<%= r.request_id %>, '<%= r.units_required %>', event)">
-                                                            <i class="fa-solid fa-check"></i> Approve
-                                                        </button>
+                                                        <!-- Auto-Approve Form -->
+                                                        <form method="POST" action="/requests/approve/<%= r.request_id %>" style="display:inline" onsubmit="return confirm('Approve this request? Blood will be drawn automatically from inventory.')">
+                                                            <button type="submit" class="btn btn-success btn-sm">
+                                                                <i class="fa-solid fa-check"></i> Approve
+                                                            </button>
+                                                        </form>
                                                         <form method="POST"
                                                             action="/requests/reject/<%= r.request_id %>"
                                                             style="display:inline"
                                                             onsubmit="return confirm('Reject this request?')">
-                                                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                                                            <button class="btn btn-danger btn-sm"><i
+<button class="btn btn-danger btn-sm"><i
                                                                     class="fa-solid fa-xmark"></i> Reject</button>
                                                         </form>
                                                     </td>
@@ -198,15 +197,14 @@
 
                     <!-- Approve Modal -->
                     <div id="approveModal"
-                        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+                        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
                         <div
                             style="background:var(--bg-secondary, #1a1a2e);border-radius:16px;padding:32px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid var(--border-color, #2a2a3e);">
                             <h3 style="margin-bottom:20px;"><i class="fa-solid fa-check-circle"
                                     style="color:var(--success)"></i> Approve Request #<span id="modalReqId"></span>
                             </h3>
-                            <form method="POST" id="approveForm">
-                                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                                <div class="form-group" style="margin-bottom:14px;">
+                            <form method="POST" id="approveForm" action="#">
+<div class="form-group" style="margin-bottom:14px;">
                                     <label>Inventory ID to draw from *</label>
                                     <input type="number" name="inventory_id" id="modalInvId" required
                                         placeholder="e.g., 1" />
@@ -225,4 +223,4 @@
                         </div>
                     </div>
 
-                    <script src="/js/requests.js"></script>
+                    <script src="/js/requests.js?v=<%= Date.now() %>"></script>

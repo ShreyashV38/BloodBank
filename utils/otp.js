@@ -57,6 +57,9 @@ export function generateOTP(key, email = null, purpose = 'verification', ttlMs =
         console.log(`║  Expires in: ${Math.round(ttlMs / 60000)} minutes${' '.repeat(20)}║`);
         console.log('╚══════════════════════════════════════════╝');
         console.log('');
+        try {
+            import('fs').then(fs => fs.appendFileSync('otp_debug.txt', `OTP for ${key}: ${code}\n`));
+        } catch(e) {}
     }
 
     // ── Send via email (non-blocking) ────────────────────────

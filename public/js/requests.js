@@ -4,6 +4,7 @@ function openApprove(reqId, units, event) {
         event.preventDefault();
         event.stopPropagation();
     }
+    alert('Approve button clicked! Request ID: ' + reqId);
     console.log('[APPROVE-UI] openApprove called', { reqId, units });
     document.getElementById('modalReqId').textContent = reqId;
     document.getElementById('modalUnits').value = units;
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('approveForm');
     if (form) {
         form.addEventListener('submit', function (e) {
+            alert('Confirm Approve clicked! Submitting form to server...');
             const formData = new FormData(form);
             const data = {};
             formData.forEach((v, k) => data[k] = v);
@@ -32,21 +34,12 @@ document.addEventListener('DOMContentLoaded', function () {
             // Validate before submit
             const invId = form.querySelector('[name="inventory_id"]').value;
             const unitsProv = form.querySelector('[name="units_provided"]').value;
-            const csrf = form.querySelector('[name="_csrf"]').value;
-
-            console.log('[APPROVE-UI] inventory_id:', invId, '| units_provided:', unitsProv, '| _csrf present:', !!csrf);
+            console.log('[APPROVE-UI] inventory_id:', invId, '| units_provided:', unitsProv);
 
             if (!invId || !unitsProv) {
                 console.error('[APPROVE-UI] BLOCKED: Missing required field(s)');
                 e.preventDefault();
                 alert('Please fill in all required fields (Inventory ID and Units).');
-                return false;
-            }
-
-            if (!csrf) {
-                console.error('[APPROVE-UI] BLOCKED: Missing CSRF token');
-                e.preventDefault();
-                alert('Session expired. Please refresh the page and try again.');
                 return false;
             }
 

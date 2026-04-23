@@ -11,8 +11,7 @@ import db from './config/db.js';
 
 // ── Security Middleware ──────────────────────────────────────
 import {
-    helmetMiddleware, generalLimiter, sanitizeBody, requireRole,
-    doubleCsrfProtection, generateCsrfToken
+    helmetMiddleware, generalLimiter, sanitizeBody, requireRole
 } from './middleware/security.js';
 
 // ── Route Imports ────────────────────────────────────────────
@@ -88,27 +87,53 @@ if (!sessionSecret && process.env.NODE_ENV === 'production') {
 
 app.use(session({
     secret: sessionSecret || 'bloodbank_goa_secret_CHANGE_ME_DEV_ONLY',
-    resave: false,
-    saveUninitialized: true,  // Must be true for CSRF to work with new sessions
+    resave: true, // changed to true to ensure session is saved
+    saveUninitialized: true, // changed to true
     cookie: {
         maxAge: 8 * 60 * 60 * 1000,   // 8 hours
         httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        sameSite: false, // relaxed for local dev
+        secure: false // strictly false for local HTTP
     },
     name: 'bbsid'
 }));
 
-// ── CSRF Protection (after cookie-parser + session) ──────────
+import { doubleCsrf } from 'csrf-csrf';
+const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+    getSecret: () => process.env.CSRF_SECRET || 'bloodbank_csrf_dev_secret_key',
+    cookieName: 'x-csrf-token',
+    cookieOptions: { httpOnly: true, sameSite: false, path: '/', secure: false },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    getTokenFromRequest: (req) => req.body._csrf
+});
+
 app.use(doubleCsrfProtection);
 
-// Expose CSRF token to all EJS views
+// ── Auto-Inject CSRF to ALL forms (Magic Fix) ───────────────────
 app.use((req, res, next) => {
-    try {
-        res.locals.csrfToken = generateCsrfToken(req, res);
-    } catch (err) {
-        console.error('CSRF Error:', err.message);
-        res.locals.csrfToken = '';
+    const token = generateCsrfToken(req, res); // Fixed function signature order (req, res) for CSRF
+    res.locals.csrfToken = token;
+    
+    const originalSend = res.send;
+    res.send = function (body) {
+        if (typeof body === 'string' && body.includes('<form ')) {
+            const csrfInput = `<input type="hidden" name="_csrf" value="${token}">`;
+            body = body.replace(/(<form[^>]*method="POST"[^>]*>)/gi, `$1\n${csrfInput}`);
+        }
+        return originalSend.call(this, body);
+    };
+    next();
+});
+
+// ── DEBUG: Log all POST requests ─────────────────────────────
+app.use((req, res, next) => {
+    if (req.method === 'POST') {
+        console.log('\n========== [POST REQUEST] ==========');
+        console.log('[POST]', req.method, req.originalUrl);
+        console.log('[POST] Body:', JSON.stringify(req.body));
+        console.log('[POST] Session userId:', req.session?.userId, '| adminId:', req.session?.adminId, '| role:', req.session?.role);
+        console.log('====================================\n');
     }
     next();
 });
@@ -236,24 +261,6 @@ app.use((req, res) => {
 
 // ── Global Error Handler ─────────────────────────────────────
 app.use((err, req, res, next) => {
-    // CSRF token errors
-    if (err.code === 'EBADCSRFTOKEN' || err.message?.includes('csrf') || err.message?.includes('CSRF')) {
-        // For API requests, return JSON error
-        if (req.xhr || req.headers.accept?.includes('json')) {
-            return res.status(403).json({
-                error: 'Invalid or expired CSRF token. Please refresh the page and try again.'
-            });
-        }
-
-        // For form submissions, render error page
-        return res.status(403).render('error', {
-            title: 'Session Expired',
-            code: 403,
-            message: 'Your session has expired or the form token is invalid. Please go back and try again.',
-            layout: req.session?.userId ? 'layout' : false
-        });
-    }
-
     console.error('Error:', err.message);
     res.status(500).render('error', {
         title: 'Server Error',

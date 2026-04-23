@@ -51,8 +51,7 @@ const statusBadge = { Upcoming: 'badge-info', Ongoing: 'badge-success', Complete
         <span class="card-title"><i class="fa-solid fa-plus"></i> Schedule New Donation Camp</span>
     </div>
     <form method="POST" action="/camps/add">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <div class="form-grid">
+<div class="form-grid">
             <div class="form-group">
                 <label>Camp Name *</label>
                 <input type="text" name="name" required placeholder="e.g., Blood Donation Drive 2026" />
