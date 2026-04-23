@@ -119,8 +119,8 @@
                                                     </td>
                                                     <td>
                                                         <!-- Approve Modal Trigger -->
-                                                        <button class="btn btn-success btn-sm"
-                                                            onclick="openApprove(<%= r.request_id %>, '<%= r.units_required %>')">
+                                                        <button type="button" class="btn btn-success btn-sm"
+                                                            onclick="openApprove(<%= r.request_id %>, '<%= r.units_required %>', event)">
                                                             <i class="fa-solid fa-check"></i> Approve
                                                         </button>
                                                         <form method="POST"

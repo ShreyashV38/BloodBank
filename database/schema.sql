@@ -322,8 +322,8 @@ BEGIN
     INSERT INTO request_fulfillment (request_id, inventory_id, units_provided, fulfilled_by, dispatch_temperature, transport_mode)
     VALUES (p_request_id, p_inventory_id, p_units, p_admin_id, p_dispatch_temp, p_transport_mode);
 
-    -- Mark request as fulfilled
-    UPDATE blood_request SET status = 'Fulfilled' WHERE request_id = p_request_id;
+    -- Mark request as approved (payment will later fulfill)
+    UPDATE blood_request SET status = 'Approved' WHERE request_id = p_request_id;
 
     COMMIT;
 END$$

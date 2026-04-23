@@ -71,30 +71,47 @@ router.post('/add', sanitizeBody, validateBloodRequest, async (req, res) => {
     }
 });
 
-// POST /requests/approve/:id — calls sp_fulfill_request
+// POST /requests/approve/:id — calls sp_fulfill_request (creates invoice + marks Approved)
 router.post('/approve/:id', validateParamId(), sanitizeBody, async (req, res) => {
     const { inventory_id, units_provided, dispatch_temperature, transport_mode } = req.body;
     const request_id = req.params.id;
-    const admin_id = req.session.adminId;
+    // Use adminId if set, fall back to userId (both are the same user_id for admin/staff)
+    const admin_id = req.session.adminId || req.session.userId;
 
-    if (!inventory_id || !/^\d+$/.test(inventory_id)) {
+    console.log('[APPROVE] incoming', {
+        request_id,
+        inventory_id,
+        units_provided,
+        admin_id,
+        role: req.session.role
+    });
+
+    console.log('[APPROVE DEBUG]', { request_id, inventory_id, units_provided, admin_id, sessionKeys: Object.keys(req.session) });
+
+    if (!inventory_id || !/^\d+$/.test(String(inventory_id))) {
+        console.log('[APPROVE] blocked: invalid inventory_id', { request_id, inventory_id });
         return res.redirect('/requests?error=' + encodeURIComponent('Invalid inventory ID.'));
     }
     if (!units_provided || isNaN(units_provided) || parseFloat(units_provided) <= 0) {
+        console.log('[APPROVE] blocked: invalid units_provided', { request_id, units_provided });
         return res.redirect('/requests?error=' + encodeURIComponent('Invalid units provided.'));
     }
     if (!admin_id) {
-        return res.redirect('/requests?error=' + encodeURIComponent('Admin session required.'));
+        console.log('[APPROVE] blocked: missing admin session', { request_id });
+        return res.redirect('/requests?error=' + encodeURIComponent('Admin session required. Please log in again.'));
     }
 
     try {
-        await db.query(
+        console.log(`[APPROVE] Attempting to call sp_fulfill_request with: req_id=${request_id}, inv_id=${inventory_id}, units=${units_provided}, admin=${admin_id}`);
+        const [result] = await db.query(
             'CALL sp_fulfill_request(?, ?, ?, ?, ?, ?)',
             [request_id, parseInt(inventory_id), parseFloat(units_provided), admin_id,
              dispatch_temperature || null, transport_mode || null]
         );
 
-        // Send fulfillment email
+        console.log('[APPROVE] success. sp_fulfill_request result:', result);
+
+        // Send approval email
         try {
             const [[reqData]] = await db.query(`
                 SELECT br.*, h.name AS hospital_name, h.email AS hospital_email, bg.group_name
@@ -103,15 +120,18 @@ router.post('/approve/:id', validateParamId(), sanitizeBody, async (req, res) =>
                 WHERE br.request_id = ?`, [request_id]);
             if (reqData?.hospital_email) {
                 sendRequestNotification(reqData.hospital_email, reqData.hospital_name, {
-                    action: 'fulfilled', bloodGroup: reqData.group_name, units: units_provided
+                    action: 'approved', bloodGroup: reqData.group_name, units: units_provided
                 });
             }
-        } catch (emailErr) { console.error('Email error:', emailErr.message); }
+        } catch (emailErr) { console.error('[APPROVE] Email error:', emailErr.message); }
 
-        res.redirect('/requests?success=Request+approved+and+inventory+deducted+successfully');
+        res.redirect('/requests?success=Request+approved+and+invoice+generated+successfully');
     } catch (err) {
-        console.error(err);
-        res.redirect('/requests?error=' + encodeURIComponent('Failed to process request. Please check inventory levels.'));
+        console.error('[APPROVE] Database Error:', err);
+        console.error('[APPROVE] Error Message:', err.message);
+        console.error('[APPROVE] Error Code:', err.code);
+        console.error('[APPROVE] SQL State:', err.sqlState);
+        res.redirect('/requests?error=' + encodeURIComponent('Failed to process request: ' + err.message));
     }
 });
 

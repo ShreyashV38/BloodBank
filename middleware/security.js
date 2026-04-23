@@ -21,7 +21,7 @@ export const helmetMiddleware = helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
             frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"]

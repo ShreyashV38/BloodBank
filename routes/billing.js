@@ -93,7 +93,7 @@ router.post('/create-order', requireHospital, sanitizeBody, async (req, res) => 
 });
 
 // ── POST /billing/verify-payment ─────────────────────────────
-// Verifies Razorpay payment signature and updates invoice status
+// Verifies Razorpay payment signature, updates invoice status, and fulfills request
 router.post('/verify-payment', requireHospital, sanitizeBody, async (req, res) => {
     try {
         const {
@@ -141,6 +141,15 @@ router.post('/verify-payment', requireHospital, sanitizeBody, async (req, res) =
             `UPDATE invoice SET status = 'Paid', payment_reference = ? WHERE invoice_id = ?`,
             [razorpay_payment_id, invoice.invoice_id]
         );
+
+        // Mark request as fulfilled after successful payment
+        await pool.query(`
+            UPDATE blood_request br
+            JOIN request_fulfillment rf ON rf.request_id = br.request_id
+            JOIN invoice i ON i.fulfillment_id = rf.fulfillment_id
+            SET br.status = 'Fulfilled'
+            WHERE i.invoice_id = ? AND br.status = 'Approved'
+        `, [invoice.invoice_id]);
 
         res.json({
             success: true,

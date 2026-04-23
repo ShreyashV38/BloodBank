@@ -391,7 +391,7 @@ BEGIN
     INSERT INTO invoice (hospital_id, fulfillment_id, amount, status, issued_date)
     VALUES (@v_hospital_id, @new_fulfillment_id, @v_invoice_amount, 'Pending', NOW());
 
-    UPDATE blood_request SET status = 'Fulfilled' WHERE request_id = p_request_id;
+    UPDATE blood_request SET status = 'Approved' WHERE request_id = p_request_id;
 
     COMMIT;
 END$$

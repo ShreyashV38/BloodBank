@@ -54,7 +54,7 @@
             <% if (hospital) { %>
                 <%
                     const pending = requests.filter(r => r.status === 'Pending');
-                    const fulfilled = requests.filter(r => r.status === 'Fulfilled' || r.status === 'Approved');
+                    const fulfilled = requests.filter(r => r.status === 'Fulfilled');
                     const critical = requests.filter(r => r.urgency === 'Critical' && r.status === 'Pending');
                 %>
 
@@ -141,7 +141,7 @@
                                 </thead>
                                 <tbody>
                                     <% requests.forEach(r => {
-                                        const statusClass = {Pending:'badge-warning',Approved:'badge-success',Fulfilled:'badge-success',Rejected:'badge-danger'}[r.status] || 'badge-gray';
+                                        const statusClass = {Pending:'badge-warning',Approved:'badge-info',Fulfilled:'badge-success',Rejected:'badge-danger'}[r.status] || 'badge-gray';
                                         const urgClass = {Critical:'urgency-Critical',Urgent:'urgency-Urgent',Normal:'urgency-Normal'}[r.urgency] || '';
                                     %>
                                     <tr>
