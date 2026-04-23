@@ -1,0 +1,28 @@
+\chapter{Implementation}
+
+\section{Program Modules and Functions}
+\begin{itemize}
+    \item \textbf{Auth Module:} Handles JWT issuance, password hashing, and middleware validation.
+    \item \textbf{Ledger Service:} Enforces double-entry rules. It handles deposits, fees, and cross-account transfers by generating paired debit/credit journal lines.
+    \item \textbf{Transfer Coordinator:} Manages the Maker/Checker state machine and the complex 2PC execution across the FDW-linked databases.
+    \item \textbf{Compliance Module:} Manages KYC tracking and surfaces the visual badges to the Next.js UI, alongside the \texttt{auditRouter} for tracking administrative actions.
+\end{itemize}
+
+\section{Member Specific Implementation}
+\textit{(To be filled by students. Ensure contributions are unique.)}
+
+\subsection{Member 1: Anosh}
+\textbf{Contribution Details:} 
+\begin{itemize}
+    \item Configured the Docker environment and PostgreSQL 2PC/FDW topology.
+    \item Implemented the core Ledger Service and Idempotency middleware.
+    \item Developed the Next.js frontend dashboard and transfer approval UI.
+\end{itemize}
+
+\subsection{Member 2: [Name Here]}
+\textbf{Contribution Details:}
+\begin{itemize}
+    \item Designed and implemented the Compliance (KYC) database joins and Audit Trail endpoints.
+    \item Developed the \texttt{seed\_demo.ts} scripts for automated testing and environment provisioning.
+    \item Handled the backend authentication logic and role-based access control (RBAC).
+\end{itemize}

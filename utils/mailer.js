@@ -69,7 +69,7 @@ export async function sendOTPEmail(to, code, purpose = 'verification', ttlMinute
     <div style="max-width:480px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;background:#0d0d0d;border-radius:16px;overflow:hidden;border:1px solid #2d2d2d;">
         <div style="background:linear-gradient(135deg,#7f0000,#b71c1c);padding:32px 24px;text-align:center;">
             <div style="font-size:42px;margin-bottom:8px;">🩸</div>
-            <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700;">Goa Blood Bank</h1>
+            <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700;">BloodSync</h1>
             <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:13px;">State of Goa — Official Portal</p>
         </div>
         <div style="padding:32px 24px;text-align:center;">
@@ -81,11 +81,11 @@ export async function sendOTPEmail(to, code, purpose = 'verification', ttlMinute
             <p style="color:#616161;font-size:12px;margin:24px 0 0;">If you did not request this code, please ignore this email.</p>
         </div>
         <div style="background:#111;padding:16px 24px;text-align:center;border-top:1px solid #2d2d2d;">
-            <p style="color:#616161;font-size:11px;margin:0;">© 2026 Goa Blood Bank System — Secure OTP Delivery</p>
+            <p style="color:#616161;font-size:11px;margin:0;">© 2026 BloodSync — Secure OTP Delivery</p>
         </div>
     </div>`;
 
-    return sendEmail(to, `${code} — Your ${purposeText} Code | Goa Blood Bank`, html);
+    return sendEmail(to, `${code} — Your ${purposeText} Code | BloodSync`, html);
 }
 
 /**
@@ -120,11 +120,11 @@ export async function sendRequestNotification(to, hospitalName, details) {
                     ${purpose ? `<tr><td style="padding:4px 8px;">Purpose</td><td style="color:#f5f5f5;">${purpose}</td></tr>` : ''}
                 </table>
             </div>
-            <p style="color:#616161;font-size:12px;margin:16px 0 0;">This is an automated notification from the Goa Blood Bank System.</p>
+            <p style="color:#616161;font-size:12px;margin:16px 0 0;">This is an automated notification from the BloodSync.</p>
         </div>
     </div>`;
 
-    return sendEmail(to, `Blood Request ${actionText} — ${bloodGroup || ''} | Goa Blood Bank`, html);
+    return sendEmail(to, `Blood Request ${actionText} — ${bloodGroup || ''} | BloodSync`, html);
 }
 
 export default { sendEmail, sendOTPEmail, sendRequestNotification };

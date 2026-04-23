@@ -3,6 +3,7 @@
 // Security hardened: sanitization, param validation
 // ============================================================
 import express from 'express';
+import { mdToPdf } from 'md-to-pdf';
 import pool from '../config/db.js';
 import { sanitizeBody, validateParamId } from '../middleware/security.js';
 
@@ -69,6 +70,41 @@ router.get('/', requireDonor, async (req, res) => {
     }
 });
 
+// GET /donor-portal/book-appointment — booking form
+router.get('/book-appointment', requireDonor, async (req, res) => {
+    try {
+        const [donors] = await pool.query('SELECT donor_id, is_eligible FROM donor WHERE user_id = ?', [req.session.userId]);
+        if (!donors.length) return res.redirect('/donor-portal');
+        
+        // Fetch hospitals
+        const [hospitals] = await pool.query('SELECT name FROM hospital ORDER BY name ASC');
+        // Fetch upcoming camps
+        const [camps] = await pool.query('SELECT name, location, camp_date FROM vw_upcoming_camps ORDER BY camp_date ASC');
+        
+        const locations = [];
+        locations.push('GMC Blood Bank, Bambolim, Goa');
+        hospitals.forEach(h => {
+            if (!locations.includes(h.name)) locations.push(h.name);
+        });
+        camps.forEach(c => {
+            const dateStr = new Date(c.camp_date).toLocaleDateString('en-GB');
+            locations.push(`Camp: ${c.name} (${c.location}) - ${dateStr}`);
+        });
+
+        res.render('donor-portal/book-appointment', {
+            title: 'Book Appointment',
+            locations,
+            donor: donors[0],
+            admin: { fullName: req.session.fullName, role: req.session.role },
+            success: null, error: null,
+            layout: false
+        });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/donor-portal?error=' + encodeURIComponent('Failed to load booking form'));
+    }
+});
+
 // POST /donor-portal/book-appointment — schedule a donation (validated)
 router.post('/book-appointment', requireDonor, sanitizeBody, async (req, res) => {
     const { scheduled_date, time_slot, location, notes } = req.body;
@@ -94,8 +130,18 @@ router.post('/book-appointment', requireDonor, sanitizeBody, async (req, res) =>
     }
 
     try {
-        const [donors] = await pool.query('SELECT donor_id FROM donor WHERE user_id = ?', [req.session.userId]);
+        const [donors] = await pool.query('SELECT donor_id, is_eligible FROM donor WHERE user_id = ?', [req.session.userId]);
         if (!donors.length) return res.redirect('/donor-portal');
+
+        // Check if donor is eligible
+        if (!donors[0].is_eligible) {
+            return res.render('donor-portal/book-appointment', {
+                title: 'Book Appointment', locations: [], donor: donors[0],
+                admin: { fullName: req.session.fullName, role: req.session.role },
+                success: null, error: 'You are currently not eligible to donate. Please wait until your cooldown period ends.',
+                layout: false
+            });
+        }
 
         await pool.query(`
             INSERT INTO appointment (donor_id, scheduled_date, time_slot, location, notes)
@@ -131,6 +177,65 @@ router.post('/cancel-appointment/:id', requireDonor, validateParamId(), async (r
     } catch (err) {
         console.error(err);
         res.redirect('/donor-portal');
+    }
+});
+
+// GET /donor-portal/certificate/:id — Download PDF Certificate
+router.get('/certificate/:id', requireDonor, validateParamId(), async (req, res) => {
+    try {
+        const [donors] = await pool.query('SELECT donor_id, first_name, last_name FROM donor WHERE user_id = ?', [req.session.userId]);
+        if (!donors.length) return res.redirect('/donor-portal');
+        
+        const donor = donors[0];
+
+        const [history] = await pool.query(`
+            SELECT * FROM vw_donor_history 
+            WHERE donor_id = ? AND status = 'Collected' AND donation_date = (
+                SELECT donation_date FROM donation WHERE donation_id = ?
+            )
+        `, [donor.donor_id, req.params.id]);
+
+        // Using direct donation query since vw_donor_history doesn't return donation_id
+        const [donation] = await pool.query(`
+            SELECT don.*, bg.group_name 
+            FROM donation don
+            JOIN blood_group bg ON don.blood_group_id = bg.blood_group_id
+            WHERE don.donation_id = ? AND don.donor_id = ? AND don.status IN ('Collected', 'Tested', 'Approved')
+        `, [req.params.id, donor.donor_id]);
+
+        if (!donation.length) {
+            return res.redirect('/donor-portal?error=' + encodeURIComponent('Certificate not found or not yet approved.'));
+        }
+
+        const d = donation[0];
+        const dateStr = new Date(d.donation_date).toLocaleDateString();
+
+        const markdown = `
+# <center>Certificate of Appreciation</center>
+***
+<br><br>
+### <center>Awarded to</center>
+## <center>**${donor.first_name} ${donor.last_name}**</center>
+<br>
+<center>For the selfless act of donating **${d.units_donated} units** of **${d.group_name}** blood on **${dateStr}** at **${d.donated_at_location}**.</center>
+<br><br>
+<center>Your generosity helps save lives and gives hope to those in need.</center>
+<br><br><br>
+<center>___________________________</center>
+<center>**BloodSync Director**</center>
+        `;
+
+        const pdf = await mdToPdf({ content: markdown }, { 
+            pdf_options: { format: 'A4', orientation: 'landscape', margin: { top: '30mm', bottom: '30mm', right: '30mm', left: '30mm' } }
+        });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Donation_Certificate_${d.donation_id}.pdf"`);
+        res.send(Buffer.from(pdf.content));
+
+    } catch (err) {
+        console.error(err);
+        res.redirect('/donor-portal?error=' + encodeURIComponent('Failed to generate certificate.'));
     }
 });
 

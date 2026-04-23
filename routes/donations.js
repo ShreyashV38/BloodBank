@@ -81,4 +81,31 @@ router.post('/record', sanitizeBody, validateDonation, async (req, res) => {
     }
 });
 
+// =====================================================================
+// FEATURE 5: Admin / Staff Daily Appointments Roster
+// =====================================================================
+router.get('/roster', async (req, res) => {
+    try {
+        const [appointments] = await db.query(`
+            SELECT a.*, d.first_name, d.last_name, d.phone, bg.group_name
+            FROM appointment a
+            JOIN donor d ON a.donor_id = d.donor_id
+            JOIN blood_group bg ON d.blood_group_id = bg.blood_group_id
+            WHERE a.scheduled_date = CURDATE() 
+              AND a.location = 'GMC Blood Bank, Bambolim, Goa'
+            ORDER BY a.time_slot ASC
+        `);
+
+        res.render('donations/roster', {
+            title: 'Daily Roster',
+            appointments,
+            success: req.query.success || null,
+            error: req.query.error || null
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+});
+
 export default router;

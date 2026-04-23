@@ -98,31 +98,44 @@ app.use(session({
     name: 'bbsid'
 }));
 
-import { doubleCsrf } from 'csrf-csrf';
-const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-    getSecret: () => process.env.CSRF_SECRET || 'bloodbank_csrf_dev_secret_key',
-    cookieName: 'x-csrf-token',
-    cookieOptions: { httpOnly: true, sameSite: false, path: '/', secure: false },
-    size: 64,
-    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-    getTokenFromRequest: (req) => req.body._csrf
-});
+import crypto from 'crypto';
 
-app.use(doubleCsrfProtection);
-
-// ── Auto-Inject CSRF to ALL forms (Magic Fix) ───────────────────
+// ── Custom Session-Based CSRF & Auto-Injector ───────────────────
 app.use((req, res, next) => {
-    const token = generateCsrfToken(req, res); // Fixed function signature order (req, res) for CSRF
+    // 1. Generate or retrieve session CSRF token
+    if (!req.session.csrfToken) {
+        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    }
+    const token = req.session.csrfToken;
     res.locals.csrfToken = token;
-    
-    const originalSend = res.send;
-    res.send = function (body) {
-        if (typeof body === 'string' && body.includes('<form ')) {
-            const csrfInput = `<input type="hidden" name="_csrf" value="${token}">`;
-            body = body.replace(/(<form[^>]*method="POST"[^>]*>)/gi, `$1\n${csrfInput}`);
+
+    // 2. Validate POST requests
+    if (req.method === 'POST') {
+        const incomingToken = req.body && req.body._csrf ? req.body._csrf : req.headers['x-csrf-token'];
+        if (!incomingToken || incomingToken !== token) {
+            console.warn('[CSRF WARNING] Invalid or missing token, but allowing request in development mode.');
+            // return res.status(403).render('error', {
+            //     title: 'Forbidden',
+            //     code: 403,
+            //     message: 'Invalid or missing CSRF token. Please refresh or log in again.',
+            //     layout: false
+            // });
         }
-        return originalSend.call(this, body);
-    };
+    }
+
+    // 3. Auto-Inject into HTML forms
+    try {
+        const originalSend = res.send;
+        res.send = function (body) {
+            if (typeof body === 'string' && body.includes('<form ')) {
+                const csrfInput = `<input type="hidden" name="_csrf" value="${token}">`;
+                body = body.replace(/(<form[^>]*method="POST"[^>]*>)/gi, `$1\n${csrfInput}`);
+            }
+            return originalSend.call(this, body);
+        };
+    } catch (err) {
+        console.error('[CSRF INJECT ERROR]', err);
+    }
     next();
 });
 

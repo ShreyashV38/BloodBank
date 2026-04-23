@@ -1,0 +1,29 @@
+\chapter{System Analysis}
+
+\section{Business Requirement Document (BRD) Summary}
+The system must support the following core business functions:
+\begin{itemize}
+    \item \textbf{User Management:} Onboarding customers with KYC statuses (PENDING, VERIFIED, REJECTED).
+    \item \textbf{Ledger Operations:} All fund movements must balance to zero.
+    \item \textbf{Transfer Approval:} Employees with the 'MAKER' role initiate transfers, which must be approved by a 'CHECKER'.
+    \item \textbf{Auditability:} Every sensitive action must be immutably recorded in a centralized audit trail.
+\end{itemize}
+
+\section{Existing System Analysis}
+Many legacy banking simulations rely on a single central database for all transactions. This approach cannot simulate the complexities of a multi-branch network where connection drops and distributed deadlocks occur. ByteVault improves upon this by physically isolating branch data into separate PostgreSQL containers and handling the complex synchronization logic explicitly.
+
+\section{System Requirements (Hardware/Software)}
+\textbf{Software Requirements:}
+\begin{itemize}
+    \item \textbf{Database:} 2x PostgreSQL 16 Instances (simulating Main and Sub branches)
+    \item \textbf{Backend:} Bun runtime (v1.x), Express.js, TypeScript
+    \item \textbf{Frontend:} Next.js 14, React, TailwindCSS
+    \item \textbf{Containerization:} Docker Desktop (for orchestrating the dual database setup)
+\end{itemize}
+
+\textbf{Hardware Requirements (Development):}
+\begin{itemize}
+    \item CPU: Quad-core processor or better (to comfortably run multiple containers and Node/Bun processes)
+    \item RAM: 8GB minimum (16GB recommended for smooth Docker operation)
+    \item Storage: 1GB free space for database volumes and \texttt{node\_modules}
+\end{itemize}

@@ -136,4 +136,46 @@ router.post('/camp/update/:id', requireNGO, validateParamId(), sanitizeBody, asy
     }
 });
 
+// =====================================================================
+// FEATURE 4: NGO Camp Management Dashboard
+// =====================================================================
+router.get('/camps', requireNGO, async (req, res) => {
+    try {
+        const [ngos] = await pool.query('SELECT ngo_id, name FROM ngo WHERE user_id = ?', [req.session.userId]);
+        if (!ngos.length) return res.redirect('/login');
+
+        const [camps] = await pool.query(`
+            SELECT * FROM donation_camp WHERE ngo_id = ? ORDER BY camp_date DESC
+        `, [ngos[0].ngo_id]);
+
+        res.render('ngo-portal/camps', {
+            title: 'Camp Management', ngo: ngos[0], camps,
+            admin: { fullName: req.session.fullName, role: req.session.role },
+            success: req.query.success || null, error: req.query.error || null,
+            layout: false
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+});
+
+router.post('/camps/propose', requireNGO, sanitizeBody, async (req, res) => {
+    const { name, location, city, camp_date, start_time, end_time, expected_donors } = req.body;
+    try {
+        const [ngos] = await pool.query('SELECT ngo_id FROM ngo WHERE user_id = ?', [req.session.userId]);
+        if (!ngos.length) return res.redirect('/login');
+
+        await pool.query(`
+            INSERT INTO donation_camp (organizer_type, ngo_id, name, location, city, camp_date, start_time, end_time, expected_donors, status, created_by)
+            VALUES ('NGO', ?, ?, ?, ?, ?, ?, ?, ?, 'Upcoming', ?)
+        `, [ngos[0].ngo_id, name, location, city, camp_date, start_time || null, end_time || null, parseInt(expected_donors) || 0, req.session.userId]);
+
+        res.redirect('/ngo-portal/camps?success=Camp+proposed+successfully.');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/ngo-portal/camps?error=' + encodeURIComponent('Failed to propose camp.'));
+    }
+});
+
 export default router;

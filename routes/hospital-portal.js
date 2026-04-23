@@ -150,4 +150,124 @@ router.get('/invoices', requireHospital, async (req, res) => {
     }
 });
 
+// =====================================================================
+// FEATURE 2: Hospital "Fulfill Appointment" UI
+// =====================================================================
+router.get('/appointments', requireHospital, async (req, res) => {
+    try {
+        const [hospitals] = await pool.query('SELECT hospital_id, name FROM hospital WHERE user_id = ?', [req.session.userId]);
+        if (!hospitals.length) return res.redirect('/hospital-portal');
+        const hospital = hospitals[0];
+
+        const [appointments] = await pool.query(`
+            SELECT a.*, d.first_name, d.last_name, d.phone, bg.group_name
+            FROM appointment a
+            JOIN donor d ON a.donor_id = d.donor_id
+            JOIN blood_group bg ON d.blood_group_id = bg.blood_group_id
+            WHERE a.location = ? AND a.scheduled_date <= CURDATE() AND a.status = 'Scheduled'
+            ORDER BY a.scheduled_date ASC
+        `, [hospital.name]);
+
+        res.render('hospital-portal/appointments', {
+            title: 'Scheduled Appointments',
+            hospital, appointments,
+            admin: { fullName: req.session.fullName, role: req.session.role },
+            success: req.query.success || null, error: req.query.error || null,
+            layout: false
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+});
+
+router.post('/appointments/fulfill/:id', requireHospital, validateParamId(), sanitizeBody, async (req, res) => {
+    const { units_donated, weight, blood_pressure, hemoglobin_level } = req.body;
+    try {
+        const [hospitals] = await pool.query('SELECT name FROM hospital WHERE user_id = ?', [req.session.userId]);
+        if (!hospitals.length) return res.redirect('/hospital-portal');
+        const hospitalName = hospitals[0].name;
+
+        const [appts] = await pool.query('SELECT donor_id, location, status FROM appointment WHERE appointment_id = ?', [req.params.id]);
+        if (!appts.length || appts[0].location !== hospitalName || appts[0].status !== 'Scheduled') {
+            return res.redirect('/hospital-portal/appointments?error=' + encodeURIComponent('Invalid appointment or unauthorized.'));
+        }
+
+        const donorId = appts[0].donor_id;
+        const [donors] = await pool.query('SELECT blood_group_id FROM donor WHERE donor_id = ?', [donorId]);
+
+        await pool.query('UPDATE appointment SET status = ? WHERE appointment_id = ?', ['Completed', req.params.id]);
+
+        await pool.query(`
+            INSERT INTO donation (donor_id, blood_group_id, donation_date, units_donated, weight, blood_pressure, hemoglobin_level, donated_at_location, phlebotomist_id)
+            VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?)
+        `, [donorId, donors[0].blood_group_id, parseFloat(units_donated), parseFloat(weight), blood_pressure, parseFloat(hemoglobin_level), hospitalName, req.session.userId]);
+
+        res.redirect('/hospital-portal/appointments?success=Donation+recorded+and+appointment+fulfilled.');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/hospital-portal/appointments?error=' + encodeURIComponent('Failed to fulfill appointment.'));
+    }
+});
+
+// =====================================================================
+// FEATURE 3: Hospital "Walk-in Donation" UI
+// =====================================================================
+router.get('/walk-in', requireHospital, async (req, res) => {
+    try {
+        const [hospitals] = await pool.query('SELECT hospital_id, name FROM hospital WHERE user_id = ?', [req.session.userId]);
+        if (!hospitals.length) return res.redirect('/hospital-portal');
+
+        let donor = null;
+        let bloodGroup = null;
+        if (req.query.phone) {
+            const [donors] = await pool.query(`
+                SELECT d.*, bg.group_name 
+                FROM donor d 
+                JOIN blood_group bg ON d.blood_group_id = bg.blood_group_id 
+                WHERE d.phone = ?
+            `, [req.query.phone]);
+            if (donors.length) {
+                donor = donors[0];
+                bloodGroup = donor.group_name;
+            }
+        }
+
+        res.render('hospital-portal/walk-in', {
+            title: 'Walk-in Donation',
+            hospital: hospitals[0],
+            donor, bloodGroup, searchedPhone: req.query.phone,
+            admin: { fullName: req.session.fullName, role: req.session.role },
+            success: req.query.success || null, error: req.query.error || null,
+            layout: false
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+});
+
+router.post('/walk-in', requireHospital, sanitizeBody, async (req, res) => {
+    const { donor_id, units_donated, weight, blood_pressure, hemoglobin_level } = req.body;
+    try {
+        const [hospitals] = await pool.query('SELECT name FROM hospital WHERE user_id = ?', [req.session.userId]);
+        if (!hospitals.length) return res.redirect('/hospital-portal');
+        
+        const [donors] = await pool.query('SELECT blood_group_id, is_eligible FROM donor WHERE donor_id = ?', [donor_id]);
+        if (!donors.length || !donors[0].is_eligible) {
+            return res.redirect('/hospital-portal/walk-in?error=' + encodeURIComponent('Donor is not eligible.'));
+        }
+
+        await pool.query(`
+            INSERT INTO donation (donor_id, blood_group_id, donation_date, units_donated, weight, blood_pressure, hemoglobin_level, donated_at_location, phlebotomist_id)
+            VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?)
+        `, [donor_id, donors[0].blood_group_id, parseFloat(units_donated), parseFloat(weight), blood_pressure, parseFloat(hemoglobin_level), hospitals[0].name, req.session.userId]);
+
+        res.redirect('/hospital-portal/walk-in?success=Walk-in+donation+recorded+successfully.');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/hospital-portal/walk-in?error=' + encodeURIComponent('Failed to record donation.'));
+    }
+});
+
 export default router;

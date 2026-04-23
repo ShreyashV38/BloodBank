@@ -1,0 +1,87 @@
+<%# views/donations/roster.ejs — Daily Appointments Roster (Admin Layout Partial) %>
+
+<% if (success) { %>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+<% } %>
+<% if (error) { %>
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+<% } %>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-box amber">
+        <i class="fa-solid fa-clock stat-box-icon"></i>
+        <div class="num"><%= appointments.filter(a => a.status === 'Scheduled').length %></div>
+        <div class="lbl">Waiting</div>
+    </div>
+    <div class="stat-box green">
+        <i class="fa-solid fa-circle-check stat-box-icon"></i>
+        <div class="num"><%= appointments.filter(a => a.status !== 'Scheduled').length %></div>
+        <div class="lbl">Completed</div>
+    </div>
+    <div class="stat-box blue">
+        <i class="fa-solid fa-calendar-check stat-box-icon"></i>
+        <div class="num"><%= appointments.length %></div>
+        <div class="lbl">Total Today</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-list-ol"></i> Queue for <%= new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) %></span>
+        <a href="/donations" class="btn btn-outline btn-sm"><i class="fa-solid fa-plus"></i> Manual Entry</a>
+    </div>
+    <% if (appointments.length === 0) { %>
+        <div style="text-align:center; padding:40px 20px;">
+            <i class="fa-solid fa-calendar-xmark" style="font-size:3rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>
+            <p style="color:var(--text-muted); font-size:.9rem;">No appointments scheduled for today at GMC Blood Bank.</p>
+        </div>
+    <% } else { %>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time Slot</th>
+                        <th>Donor Name</th>
+                        <th>Phone</th>
+                        <th>Blood Group</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% appointments.forEach(a => { %>
+                        <tr>
+                            <td><strong><%= a.time_slot || 'Any Time' %></strong></td>
+                            <td style="font-weight:600;"><%= a.first_name %> <%= a.last_name %></td>
+                            <td><%= a.phone %></td>
+                            <td>
+                                <span class="blood-badge" style="background:rgba(239,83,80,0.15); color:var(--blood-light); border:1px solid rgba(239,83,80,0.3);">
+                                    <%= a.group_name %>
+                                </span>
+                            </td>
+                            <td>
+                                <% if (a.status === 'Scheduled') { %>
+                                    <span class="badge badge-warning">Waiting</span>
+                                <% } else { %>
+                                    <span class="badge badge-success"><%= a.status %></span>
+                                <% } %>
+                            </td>
+                            <td>
+                                <% if (a.status === 'Scheduled') { %>
+                                    <a href="/donations?donor_id=<%= a.donor_id %>" class="btn btn-primary btn-sm">
+                                        <i class="fa-solid fa-syringe"></i> Record
+                                    </a>
+                                <% } else { %>
+                                    <span style="color:var(--success); font-size:.82rem; font-weight:600;">
+                                        <i class="fa-solid fa-circle-check"></i> Done
+                                    </span>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    <% } %>
+</div>

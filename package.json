@@ -1,7 +1,7 @@
 {
   "name": "blood-bank-system",
   "version": "1.0.0",
-  "description": "Blood Bank Management System — DBMS Mini Project",
+  "description": "BloodSync — DBMS Mini Project",
   "type": "module",
   "main": "server.js",
   "scripts": {

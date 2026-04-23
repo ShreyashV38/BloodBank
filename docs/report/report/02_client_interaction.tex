@@ -1,0 +1,11 @@
+\chapter{Client Interaction}
+
+\textit{Note: As ByteVault is primarily an academic simulation of a distributed core banking ledger for the DBMS Lab course, there is no external commercial client. The "client" requirements were formulated based on standard industry banking patterns and regulatory requirements (such as the Maker/Checker paradigm and immutable ledger rules).}
+
+\section{Requirement Acquisition Summary}
+Although an internal project, the functional requirements were gathered by researching real-world banking constraints:
+\begin{itemize}
+    \item \textbf{Discussed Features:} Double-entry accounting integrity, approval workflows to prevent fraud, and strict compliance tracking (KYC).
+    \item \textbf{Important Data Constraints:} Financial values must never be manipulated via standard UPDATE statements; corrections must be handled via immutable reversal entries.
+    \item \textbf{Architectural Mandates:} Cross-branch operations must survive network crashes without leaving funds locked in limbo.
+\end{itemize}

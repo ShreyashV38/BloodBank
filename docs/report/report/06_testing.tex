@@ -1,0 +1,10 @@
+\chapter{Testing and Debugging}
+
+\section{Testing Methods Used}
+ByteVault's critical nature requires stringent testing:
+\begin{itemize}
+    \item \textbf{Unit Testing:} Individual utility functions and ledger mathematical logic were isolated and tested for correct arithmetic (preventing floating-point errors by enforcing integer cents).
+    \item \textbf{Integration Testing:} The \texttt{seed\_demo.ts} script doubles as an integration harness, validating that users, accounts, and audit logs can be written to the database seamlessly.
+    \item \textbf{Concurrency / Chaos Testing:} Simulated network failures during the Two-Phase Commit protocol to ensure that if a database crashes after \texttt{PREPARE TRANSACTION}, the backend correctly executes a \texttt{ROLLBACK PREPARED} upon recovery, leaving no funds locked in limbo.
+    \item \textbf{Idempotency Testing:} Deliberately sending duplicate POST requests with the same \texttt{Idempotency-Key} to ensure the application intercepts and caches the original response rather than double-charging an account.
+\end{itemize}

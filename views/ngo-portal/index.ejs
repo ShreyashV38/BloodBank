@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><%= ngo ? ngo.name : 'NGO Portal' %> — Goa Blood Bank</title>
+    <title><%= ngo ? ngo.name : 'NGO Portal' %> — BloodSync</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -15,11 +15,12 @@
         <aside class="portal-sidebar">
             <div class="logo">
                 <i class="fa-solid fa-droplet"></i>
-                <h2>Goa Blood Bank</h2>
+                <h2>BloodSync</h2>
                 <p><%= ngo ? ngo.name : 'NGO Portal' %></p>
             </div>
             <nav class="portal-nav">
                 <a href="/ngo-portal" class="active"><i class="fa-solid fa-campground"></i> My Camps</a>
+                <a href="/ngo-portal/camps"><i class="fa-solid fa-tents"></i> Camp Management</a>
                 <div class="nav-divider"></div>
                 <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
                 <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
@@ -79,6 +80,7 @@
                         <span class="card-title"><i class="fa-solid fa-plus"></i> Organize New Camp</span>
                     </div>
                     <form method="POST" action="/ngo-portal/camp">
+                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
 <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> Camp Details</div>
                         <div class="form-grid" style="padding:0 20px 10px;">
                             <div class="form-group">

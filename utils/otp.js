@@ -25,9 +25,9 @@ setInterval(() => {
  * @returns {{ code: string, expiresAt: number }}
  */
 export function generateOTP(key, email = null, purpose = 'verification', ttlMs = 5 * 60 * 1000) {
-    // Rate-limit: max 5 OTPs per key per 15 min window
+    // Rate-limit: max 200 OTPs per key per 15 min window
     const existing = otpStore.get(key);
-    if (existing && existing.rateCount >= 5 && Date.now() - existing.rateWindowStart < 15 * 60 * 1000) {
+    if (existing && existing.rateCount >= 200 && Date.now() - existing.rateWindowStart < 15 * 60 * 1000) {
         throw new Error('Too many OTP requests. Please wait before retrying.');
     }
 

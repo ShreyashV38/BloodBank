@@ -14,6 +14,7 @@
                             <span class="card-title"><i class="fa-solid fa-plus"></i> Raise New Blood Request</span>
                         </div>
                         <form method="POST" action="/requests/add">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
 <div class="form-grid">
                                 <div class="form-group">
                                     <label>Hospital *</label>
@@ -119,6 +120,7 @@
                                                     <td>
                                                         <!-- Auto-Approve Form -->
                                                         <form method="POST" action="/requests/approve/<%= r.request_id %>" style="display:inline" onsubmit="return confirm('Approve this request? Blood will be drawn automatically from inventory.')">
+                                                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
                                                             <button type="submit" class="btn btn-success btn-sm">
                                                                 <i class="fa-solid fa-check"></i> Approve
                                                             </button>
@@ -127,6 +129,7 @@
                                                             action="/requests/reject/<%= r.request_id %>"
                                                             style="display:inline"
                                                             onsubmit="return confirm('Reject this request?')">
+                                                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
 <button class="btn btn-danger btn-sm"><i
                                                                     class="fa-solid fa-xmark"></i> Reject</button>
                                                         </form>
@@ -204,6 +207,7 @@
                                     style="color:var(--success)"></i> Approve Request #<span id="modalReqId"></span>
                             </h3>
                             <form method="POST" id="approveForm" action="#">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
 <div class="form-group" style="margin-bottom:14px;">
                                     <label>Inventory ID to draw from *</label>
                                     <input type="number" name="inventory_id" id="modalInvId" required

@@ -1,0 +1,12 @@
+\chapter{Introduction}
+
+\section{Brief Description of the Project Idea}
+ByteVault is a mission-critical core banking system designed to simulate a multi-branch banking infrastructure. Built on a distributed double-entry ledger, it guarantees auditability, cross-branch transactional safety via the Two-Phase Commit (2PC) protocol, and high concurrency protection. It aims to demonstrate how modern banking operations such as inter-branch transfers, KYC compliance, and immutable ledger operations are coordinated securely.
+
+\section{Purpose and Scope of the System}
+The purpose of ByteVault is to bridge the gap between traditional monolithic databases and highly distributed financial systems. The system's scope includes employee workflows (Maker/Checker paradigms), secure real-time account balances, distributed fund transfers, administrative overrides (reversals), and comprehensive audit logging. It serves as a proof-of-concept for handling geographically separated branch databases while maintaining strict ACID compliance.
+
+\section{Problem Statement and Objectives}
+Modern banking systems face a trilemma: achieving high availability, maintaining strict data consistency, and minimizing network latency. Centralized databases introduce single points of failure and high latency for remote branches. Conversely, standard decentralized systems risk distributed transaction failures where money could be deducted from one branch but never credited to another due to network partitions.
+
+The primary objective of ByteVault is to solve this by implementing a distributed database architecture using PostgreSQL Foreign Data Wrappers (FDW) and the 2PC protocol to ensure that cross-branch transactions are perfectly atomic, isolated, and durable.

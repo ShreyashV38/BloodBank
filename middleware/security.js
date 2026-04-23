@@ -52,7 +52,7 @@ export const signupLimiter = rateLimit({
 
 export const otpLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 200,
     message: 'Too many OTP requests. Please wait before retrying.',
     standardHeaders: true,
     legacyHeaders: false

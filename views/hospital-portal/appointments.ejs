@@ -1,0 +1,159 @@
+<%# views/hospital-portal/appointments.ejs — Fulfill Appointments %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %> — BloodSync</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>BloodSync</h2>
+                <p><%= hospital ? hospital.name : 'Hospital Portal' %></p>
+            </div>
+            <nav class="portal-nav">
+                <a href="/hospital-portal"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                <a href="/hospital-portal/appointments" class="active"><i class="fa-solid fa-calendar-check"></i> Appointments</a>
+                <a href="/hospital-portal/walk-in"><i class="fa-solid fa-person-walking"></i> Walk-in Donation</a>
+                <a href="/hospital-portal/invoices"><i class="fa-solid fa-file-invoice-dollar"></i> Billing & Invoices</a>
+                <div class="nav-divider"></div>
+                <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
+                <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
+            </nav>
+            <div class="portal-footer">
+                <% if (admin) { %>
+                    <div style="margin-bottom:12px;">
+                        <div class="admin-name" style="color:#fff;"><%= admin.fullName %></div>
+                        <div class="admin-role" style="color:rgba(255,255,255,.5);"><%= admin.role %></div>
+                    </div>
+                <% } %>
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-calendar-check"></i> Scheduled Appointments</h1>
+                <p>Manage and fulfill donor appointments at <strong><%= hospital.name %></strong></p>
+            </div>
+
+            <% if (error) { %> <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div> <% } %>
+            <% if (success) { %> <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div> <% } %>
+
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-box amber">
+                    <i class="fa-solid fa-clock stat-box-icon"></i>
+                    <div class="num"><%= appointments.length %></div>
+                    <div class="lbl">Pending Today</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-list"></i> Appointments Queue</span>
+                </div>
+                <% if (appointments.length === 0) { %>
+                    <div style="text-align:center; padding:40px 20px;">
+                        <i class="fa-solid fa-calendar-xmark" style="font-size:3rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>
+                        <p style="color:var(--text-muted); font-size:.9rem;">No pending appointments scheduled for this location.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Donor Name</th>
+                                    <th>Phone</th>
+                                    <th>Blood Group</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% appointments.forEach(a => { %>
+                                    <tr>
+                                        <td style="font-size:.82rem; color:var(--text-muted);"><%= new Date(a.scheduled_date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                                        <td><strong><%= a.time_slot || 'Any Time' %></strong></td>
+                                        <td style="font-weight:600;"><%= a.first_name %> <%= a.last_name %></td>
+                                        <td><%= a.phone %></td>
+                                        <td>
+                                            <span class="blood-badge" style="background:rgba(239,83,80,0.15); color:var(--blood-light); border:1px solid rgba(239,83,80,0.3);">
+                                                <%= a.group_name %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-success btn-sm" onclick="openFulfillModal(<%= a.appointment_id %>, '<%= a.first_name %> <%= a.last_name %>')">
+                                                <i class="fa-solid fa-check"></i> Fulfill
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+
+    <!-- Fulfill Modal -->
+    <div id="fulfillModal" class="modal">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-syringe"></i> Record Donation</h2>
+                <span class="close-modal" onclick="closeFulfillModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:16px;">Donor: <strong id="modalDonorName"></strong></p>
+                <form id="fulfillForm" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+                    
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                        <div class="form-group">
+                            <label>Units Donated <span class="text-danger">*</span></label>
+                            <input type="number" step="0.5" min="0.5" max="2" name="units_donated" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Weight (kg) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.1" name="weight" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
+                        <div class="form-group">
+                            <label>Blood Pressure</label>
+                            <input type="text" name="blood_pressure" class="form-control" placeholder="120/80">
+                        </div>
+                        <div class="form-group">
+                            <label>Hemoglobin (g/dL)</label>
+                            <input type="number" step="0.1" name="hemoglobin_level" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width:100%"><i class="fa-solid fa-save"></i> Submit & Complete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        function openFulfillModal(appId, donorName) {
+            document.getElementById('modalDonorName').innerText = donorName;
+            document.getElementById('fulfillForm').action = '/hospital-portal/appointments/fulfill/' + appId;
+            document.getElementById('fulfillModal').style.display = 'flex';
+        }
+        function closeFulfillModal() {
+            document.getElementById('fulfillModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

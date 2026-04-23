@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Billing & Invoices — Goa Blood Bank</title>
-    <meta name="description" content="View and pay your blood request invoices — Goa Blood Bank Hospital Portal" />
+    <title>Billing & Invoices — BloodSync</title>
+    <meta name="description" content="View and pay your blood request invoices — BloodSync Hospital Portal" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -16,11 +16,13 @@
         <aside class="portal-sidebar">
             <div class="logo">
                 <i class="fa-solid fa-droplet"></i>
-                <h2>Goa Blood Bank</h2>
+                <h2>BloodSync</h2>
                 <p><%= hospital ? hospital.name : 'Hospital Portal' %></p>
             </div>
             <nav class="portal-nav">
                 <a href="/hospital-portal"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                <a href="/hospital-portal/appointments"><i class="fa-solid fa-calendar-check"></i> Appointments</a>
+                <a href="/hospital-portal/walk-in"><i class="fa-solid fa-person-walking"></i> Walk-in Donation</a>
                 <a href="/hospital-portal/invoices" class="active"><i class="fa-solid fa-file-invoice-dollar"></i> Billing & Invoices</a>
                 <div class="nav-divider"></div>
                 <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
@@ -176,11 +178,13 @@
         </main>
     </div>
 
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <script src="/js/app.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
     (function() {
 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const hospitalName = '<%= hospital ? hospital.name : "" %>';
         const hospitalEmail = '<%= hospital ? (hospital.email || "") : "" %>';
 
@@ -199,7 +203,8 @@
                     const orderRes = await fetch('/billing/create-order', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'x-csrf-token': csrfToken
                         },
                         body: JSON.stringify({ invoice_id: invoiceId })
                     });
@@ -214,7 +219,7 @@
                         key: orderData.key,
                         amount: orderData.amount,
                         currency: orderData.currency,
-                        name: 'Goa Blood Bank',
+                        name: 'BloodSync',
                         description: 'Invoice #INV-' + String(invoiceId).padStart(4, '0') + ' — Processing Fee',
                         order_id: orderData.order_id,
                         handler: async function(response) {
@@ -223,7 +228,8 @@
                                 const verifyRes = await fetch('/billing/verify-payment', {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/json'
+                                        'Content-Type': 'application/json',
+                                        'x-csrf-token': csrfToken
                                     },
                                     body: JSON.stringify({
                                         razorpay_order_id: response.razorpay_order_id,

@@ -4,39 +4,68 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Profile — Goa Blood Bank</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <title>My Profile — BloodSync</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-    <div class="portal-wrap" style="padding:40px;">
-        <div style="max-width:800px; margin:0 auto; width:100%;">
-            <a href="javascript:history.back()" class="btn btn-outline btn-sm" style="margin-bottom:20px;">
-                <i class="fa-solid fa-arrow-left"></i> Go Back
-            </a>
-            <div class="card animate-in glass-panel">
-<% } else { %>
-<div class="card animate-in glass-panel">
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>BloodSync</h2>
+                <p><%= role %> Portal</p>
+            </div>
+            <nav class="portal-nav">
+                <% if (role === 'Hospital') { %>
+                    <a href="/hospital-portal"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                    <a href="/hospital-portal/appointments"><i class="fa-solid fa-calendar-check"></i> Appointments</a>
+                    <a href="/hospital-portal/walk-in"><i class="fa-solid fa-person-walking"></i> Walk-in Donation</a>
+                    <a href="/hospital-portal/invoices"><i class="fa-solid fa-file-invoice-dollar"></i> Billing & Invoices</a>
+                <% } else if (role === 'Donor') { %>
+                    <a href="/donor-portal"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                    <a href="/donor-portal/book-appointment"><i class="fa-solid fa-calendar-plus"></i> Book Appointment</a>
+                <% } else if (role === 'NGO') { %>
+                    <a href="/ngo-portal"><i class="fa-solid fa-campground"></i> My Camps</a>
+                    <a href="/ngo-portal/camps"><i class="fa-solid fa-tents"></i> Camp Management</a>
+                <% } %>
+                <div class="nav-divider"></div>
+                <a href="/profile" class="active"><i class="fa-solid fa-user-circle"></i> My Profile</a>
+                <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
+            </nav>
+            <div class="portal-footer">
+                <% if (typeof admin !== 'undefined' && admin) { %>
+                    <div style="margin-bottom:12px;">
+                        <div class="admin-name" style="color:#fff;"><%= admin.fullName %></div>
+                        <div class="admin-role" style="color:rgba(255,255,255,.5);"><%= admin.role %></div>
+                    </div>
+                <% } %>
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-user-circle"></i> My Profile</h1>
+                <p>Manage your account and <%= role.toLowerCase() %> details</p>
+            </div>
 <% } %>
 
 <% if (success) { %>
-    <div class="alert alert-success animate-in"><i class="fa-solid fa-circle-check"></i> Profile updated successfully!</div>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Profile updated successfully!</div>
 <% } %>
 <% if (error) { %>
-    <div class="alert alert-danger animate-in"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
 <% } %>
 
-<div class="card animate-in glass-panel">
-    <div class="card-header">
-        <span class="card-title">
-            <i class="fa-solid fa-user-circle"></i> <%= role %> Profile
-        </span>
-    </div>
-
-    <!-- The form points to our common POST endpoint -->
-    <form method="POST" action="/profile/update">
-<h4 style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Account Details</h4>
+<form method="POST" action="/profile/update">
+    <!-- Account Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-id-card"></i> Account Details</span>
+        </div>
         <div class="form-grid">
             <div class="form-group">
                 <label>Username *</label>
@@ -55,12 +84,14 @@
                 <input type="email" name="email" value="<%= user.email || '' %>" placeholder="Primary Email" />
             </div>
         </div>
+    </div>
 
-        <!-- Entity Specific Details -->
-        <% if (role === 'Donor') { %>
-            <hr style="border-color: var(--border-color); margin: 20px 0; border-style: dashed;" />
-            <h4 style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Donor Details</h4>
-            
+    <!-- Entity Specific Details Card -->
+    <% if (role === 'Donor') { %>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-hand-holding-droplet"></i> Donor Details</span>
+            </div>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Mobile Number *</label>
@@ -74,15 +105,17 @@
                         <option value="Other" <%= (entity && entity.gender === 'Other') ? 'selected' : '' %>>Other</option>
                     </select>
                 </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>Residential Address</label>
+                    <textarea name="address" rows="3"><%= entity && entity.address ? entity.address : '' %></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Residential Address</label>
-                <textarea name="address" rows="3"><%= entity && entity.address ? entity.address : '' %></textarea>
+        </div>
+    <% } else if (role === 'Hospital') { %>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-hospital"></i> Hospital Details</span>
             </div>
-        <% } else if (role === 'Hospital') { %>
-            <hr style="border-color: var(--border-color); margin: 20px 0; border-style: dashed;" />
-            <h4 style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Hospital Details</h4>
-            
             <div class="form-grid">
                 <div class="form-group">
                     <label>Contact Phone *</label>
@@ -100,15 +133,17 @@
                     <label>License Number *</label>
                     <input type="text" name="license_number" value="<%= entity ? entity.license_number : '' %>" required />
                 </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>Institutional Address</label>
+                    <textarea name="address" rows="3"><%= entity && entity.address ? entity.address : '' %></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Institutional Address</label>
-                <textarea name="address" rows="3"><%= entity && entity.address ? entity.address : '' %></textarea>
+        </div>
+    <% } else if (role === 'NGO') { %>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-hand-holding-heart"></i> NGO Details</span>
             </div>
-        <% } else if (role === 'NGO') { %>
-            <hr style="border-color: var(--border-color); margin: 20px 0; border-style: dashed;" />
-            <h4 style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">NGO Details</h4>
-
             <div class="form-grid">
                 <div class="form-group">
                     <label>Contact Phone *</label>
@@ -126,22 +161,23 @@
                     <label>Registration ID *</label>
                     <input type="text" name="registration_id" value="<%= entity ? entity.registration_id : '' %>" required />
                 </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>Office Address</label>
+                    <textarea name="address" rows="3"><%= entity && entity.address ? entity.address : '' %></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Office Address</label>
-                <textarea name="address" rows="3"><%= entity && entity.address ? entity.address : '' %></textarea>
-            </div>
-        <% } %>
-
-        <div style="margin-top: 24px;">
-            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Changes</button>
         </div>
-    </form>
-</div>
+    <% } %>
+
+    <div style="margin-top:8px;">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Changes</button>
+    </div>
+</form>
 
 <% if (role !== 'Super Admin' && role !== 'Staff') { %>
-        </div>
+        </main>
     </div>
+    <script src="/js/app.js"></script>
 </body>
 </html>
 <% } %>

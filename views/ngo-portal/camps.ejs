@@ -1,0 +1,178 @@
+<%# views/ngo-portal/camps.ejs — Camp Management Dashboard %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %> — BloodSync</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="portal-wrap">
+        <aside class="portal-sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-droplet"></i>
+                <h2>BloodSync</h2>
+                <p><%= ngo ? ngo.name : 'NGO Portal' %></p>
+            </div>
+            <nav class="portal-nav">
+                <a href="/ngo-portal"><i class="fa-solid fa-campground"></i> My Camps</a>
+                <a href="/ngo-portal/camps" class="active"><i class="fa-solid fa-tents"></i> Camp Management</a>
+                <div class="nav-divider"></div>
+                <a href="/profile"><i class="fa-solid fa-user-circle"></i> My Profile</a>
+                <a href="/change-password"><i class="fa-solid fa-key"></i> Change Password</a>
+            </nav>
+            <div class="portal-footer">
+                <% if (admin) { %>
+                    <div style="margin-bottom:12px;">
+                        <div class="admin-name" style="color:#fff;"><%= admin.fullName %></div>
+                        <div class="admin-role" style="color:rgba(255,255,255,.5);"><%= admin.role %></div>
+                    </div>
+                <% } %>
+                <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="portal-main">
+            <div class="portal-header">
+                <h1><i class="fa-solid fa-tents"></i> Camp Management</h1>
+                <p>Propose and track your blood donation camps</p>
+            </div>
+
+            <% if (error) { %> <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div> <% } %>
+            <% if (success) { %> <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div> <% } %>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-box blue">
+                    <i class="fa-solid fa-calendar-plus stat-box-icon"></i>
+                    <div class="num"><%= camps.filter(c => c.status === 'Upcoming').length %></div>
+                    <div class="lbl">Upcoming</div>
+                </div>
+                <div class="stat-box green">
+                    <i class="fa-solid fa-circle-check stat-box-icon"></i>
+                    <div class="num"><%= camps.filter(c => c.status === 'Completed').length %></div>
+                    <div class="lbl">Completed</div>
+                </div>
+                <div class="stat-box amber">
+                    <i class="fa-solid fa-clipboard-list stat-box-icon"></i>
+                    <div class="num"><%= camps.length %></div>
+                    <div class="lbl">Total Camps</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <button class="btn btn-primary" onclick="openCampModal()">
+                    <i class="fa-solid fa-plus"></i> Propose New Camp
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-list"></i> Your Camps</span>
+                </div>
+                <% if (camps.length === 0) { %>
+                    <div style="text-align:center; padding:40px 20px;">
+                        <i class="fa-solid fa-campground" style="font-size:3rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>
+                        <p style="color:var(--text-muted); font-size:.9rem;">No camps proposed yet. Click "Propose New Camp" to get started.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Camp Name</th>
+                                    <th>Date</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Expected</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% camps.forEach(c => { %>
+                                    <tr>
+                                        <td style="font-weight:600;"><%= c.name %></td>
+                                        <td style="font-size:.82rem; color:var(--text-muted);"><%= new Date(c.camp_date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %></td>
+                                        <td><%= c.location %><%= c.city ? ', ' + c.city : '' %></td>
+                                        <td>
+                                            <% if (c.status === 'Upcoming') { %> <span class="badge badge-info">Upcoming</span>
+                                            <% } else if (c.status === 'Ongoing') { %> <span class="badge badge-warning">Ongoing</span>
+                                            <% } else if (c.status === 'Completed') { %> <span class="badge badge-success">Completed</span>
+                                            <% } else { %> <span class="badge badge-danger">Cancelled</span> <% } %>
+                                        </td>
+                                        <td><%= c.expected_donors %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+
+    <!-- Propose Camp Modal -->
+    <div id="campModal" class="modal">
+        <div class="modal-content" style="max-width:550px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-campground"></i> Propose New Camp</h2>
+                <span class="close-modal" onclick="closeCampModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form action="/ngo-portal/camps/propose" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+                    
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label>Camp Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required placeholder="Blood Donation Drive 2026">
+                    </div>
+                    
+                    <div style="display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px;">
+                        <div class="form-group">
+                            <label>Location/Venue <span class="text-danger">*</span></label>
+                            <input type="text" name="location" class="form-control" required placeholder="Community Hall, Panaji">
+                        </div>
+                        <div class="form-group">
+                            <label>City</label>
+                            <input type="text" name="city" class="form-control" placeholder="Panaji">
+                        </div>
+                    </div>
+                    
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                        <div class="form-group">
+                            <label>Camp Date <span class="text-danger">*</span></label>
+                            <input type="date" name="camp_date" class="form-control" required min="<%= new Date().toISOString().split('T')[0] %>">
+                        </div>
+                        <div class="form-group">
+                            <label>Expected Donors</label>
+                            <input type="number" name="expected_donors" class="form-control" placeholder="100">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
+                        <div class="form-group">
+                            <label>Start Time</label>
+                            <input type="time" name="start_time" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>End Time</label>
+                            <input type="time" name="end_time" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width:100%"><i class="fa-solid fa-paper-plane"></i> Submit Proposal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        function openCampModal() { document.getElementById('campModal').style.display = 'flex'; }
+        function closeCampModal() { document.getElementById('campModal').style.display = 'none'; }
+    </script>
+</body>
+</html>

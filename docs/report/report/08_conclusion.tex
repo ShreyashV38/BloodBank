@@ -1,0 +1,14 @@
+\chapter{Conclusion}
+
+\section{Summary of the Project Work}
+ByteVault successfully simulated a highly secure, multi-node banking infrastructure. By leveraging modern JavaScript ecosystems (Bun/Next.js) alongside advanced PostgreSQL capabilities, the project implemented a strict double-entry ledger, multi-branch transaction coordination (2PC), and robust administrative compliance tools (KYC/Audit).
+
+\section{Concepts Learned and Applied}
+\begin{itemize}
+    \item \textbf{Distributed Databases:} Understanding the CAP theorem and the Trilemma of distributed state, applying Foreign Data Wrappers for read-replica patterns.
+    \item \textbf{Transaction Management:} Implementing Two-Phase Commit (2PC) to enforce Atomicity across network boundaries.
+    \item \textbf{Database Integrity:} Designing a schema heavily reliant on Foreign Keys, Check Constraints, and unique compound keys to mathematically enforce the rules of accounting.
+\end{itemize}
+
+\section{Learning Outcome and Reflection}
+The development of ByteVault highlighted the sheer complexity of distributed financial systems. It reinforced the understanding that simple CRUD operations are insufficient for banking. Dealing with edge cases---such as network timeouts during a transfer, enforcing idempotency for retries, and maintaining an immutable audit trail---provided invaluable, real-world insight into enterprise database engineering.

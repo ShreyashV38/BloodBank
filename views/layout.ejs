@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><%= title %> — Goa Blood Bank</title>
-    <meta name="description" content="Goa Blood Bank Management System — Official Portal" />
+    <title><%= title %> — BloodSync</title>
+    <meta name="description" content="BloodSync — Official Portal" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -16,7 +16,7 @@
         <div class="sidebar-header">
             <div class="logo">
                 <i class="fa-solid fa-droplet"></i>
-                <span>Goa Blood Bank</span>
+                <span>BloodSync</span>
             </div>
             <div class="location-badge">
                 <i class="fa-solid fa-location-dot"></i> State Blood Transfusion Council, Goa
@@ -35,6 +35,9 @@
             </a></li>
             <li><a href="/donations" class="<%= title === 'Donations' ? 'active' : '' %>">
                 <i class="fa-solid fa-hand-holding-droplet"></i> Donations
+            </a></li>
+            <li><a href="/donations/roster" class="<%= title === 'Daily Roster' ? 'active' : '' %>">
+                <i class="fa-solid fa-list-ol"></i> Daily Roster
             </a></li>
             <li><a href="/inventory" class="<%= title === 'Inventory' ? 'active' : '' %>">
                 <i class="fa-solid fa-warehouse"></i> Inventory
@@ -109,7 +112,7 @@
         </div>
 
         <footer class="app-footer">
-            Goa Blood Bank System v3.0 &mdash; State Blood Transfusion Council, Goa &mdash; &copy; 2026
+            BloodSync v3.0 &mdash; State Blood Transfusion Council, Goa &mdash; &copy; 2026
         </footer>
     </div>
 
